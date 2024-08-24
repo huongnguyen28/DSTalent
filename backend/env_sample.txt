@@ -1,0 +1,20 @@
+JWT_ACCESS_KEY = something
+JWT_REFRESH_KEY = something
+JWT_VERIFY_EMAIL_KEY = something
+
+ACCESS_TIME = 15m
+REFRESH_TIME = 3d
+PORT = 8080
+
+ACCOUNT_GMAIL = something
+PASSWORD_GMAIL = something
+
+GOOGLE_CLIENT_ID = something
+GOOGLE_CLIENT_SECRET = something
+GOOGLE_AUTHORIZED_REDIRECT_URI= something
+
+
+HOST_DB = something
+USER_DB = something
+PASSWORD_DB = something
+DATABASE = something
