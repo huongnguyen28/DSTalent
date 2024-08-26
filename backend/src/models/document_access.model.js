@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       purchase_date: {
         type: DataTypes.DATE,
-        defaultValue: Date.now(),
+        defaultValue: DataTypes.NOW,
       },
       price_paid: {
         type: DataTypes.INTEGER,

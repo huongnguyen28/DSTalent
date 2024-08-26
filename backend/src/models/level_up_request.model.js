@@ -2,7 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const LevelUpRequest = sequelize.define(
     "level_up_request",
     {
-      id: {
+      level_up_request_id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,

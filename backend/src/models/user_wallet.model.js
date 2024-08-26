@@ -2,7 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const UserWallet = sequelize.define(
     "user_wallet",
     {
-      id: {
+      user_wallet_id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,

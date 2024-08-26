@@ -2,7 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const Community = sequelize.define(
     "community",
     {
-      id: {
+      community_id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
