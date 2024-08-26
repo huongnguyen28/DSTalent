@@ -28,12 +28,5 @@ module.exports = (sequelize,DataTypes) => {
         updatedAt: 'updated_at'  // Alias updatedAt as updated_at
     });
 
-    Community.associate = (models) => {
-        Community.hasMany(models.Certificate, {
-            foreignKey: 'com_id',
-            as: 'certificate'
-          });
-    };
-
     return Community
 };
