@@ -2,14 +2,19 @@ module.exports = (sequelize, DataTypes) => {
   const DocumentTag = sequelize.define(
     "document_tag",
     {
-      document_id: {
+      document_tag_id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
+      },
+      document_id: {
+        type: DataTypes.INTEGER,
+        // primaryKey: true,
         allowNull: false,
       },
       tag_id: {
         type: DataTypes.INTEGER,
-        primaryKey: true,
+        // primaryKey: true,
         allowNull: false,
       },
     },

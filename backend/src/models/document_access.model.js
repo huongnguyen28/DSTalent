@@ -1,15 +1,22 @@
+const { document_access } = require("../configs/db");
+
 module.exports = (sequelize, DataTypes) => {
   const DocumentAccess = sequelize.define(
     "document_access",
     {
-      document_id: {
+      document_access_id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
+      },
+      document_id: {
+        type: DataTypes.INTEGER,
+        // primaryKey: true,
         allowNull: false,
       },
       user_id: {
         type: DataTypes.INTEGER,
-        primaryKey: true,
+        // primaryKey: true,
         allowNull: false,
       },
       document_access_level: {
