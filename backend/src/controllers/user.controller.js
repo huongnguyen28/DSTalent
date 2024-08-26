@@ -1,13 +1,11 @@
 require("dotenv").config();
 
-const appRootPath = require("app-root-path");
 const db = require("../configs/db");
 const Users = db.users;
 const GlobalID = db.globalId;
 const Certificate = db.certificate;
 const Community = db.community;
 const UserCer = db.user_cer;
-const fs = require('fs');
 const {formatFilePath, readAndTransformImageToBase64} = require("../utils/services");
 
 const updateUser = async (req, res) => {
@@ -92,44 +90,9 @@ const createGlobalID = async (req, res) => {
     });
 };
 
-const myCertificateList = async (req, res) => {
-    try {
-        const result = await Users.findByPk(req.user.id, {
-            include: [
-              {
-                model: Certificate,
-                as: 'certificate',
-                include: [
-                  {
-                    model: Community,
-                    as: 'community'
-                  }
-                ]
-              }
-            ]
-          });
-    
-        return res.status(200).json({
-            data: {
-                certificate_list: result
-            },
-            status: 200,
-            message: "Successfully!"
-        });
-    }
-    catch (err) {
-        return res.status(500).json({
-            data: {},
-            status: 500,
-            message: "Fail!"
-        });
-    }
-}
-
 module.exports = {
     updateUser,
     getUser,
     useGlobalID,
     createGlobalID,
-    myCertificateList
 }

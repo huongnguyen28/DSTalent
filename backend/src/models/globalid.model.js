@@ -16,9 +16,5 @@ module.exports = (sequelize, DataTypes) => {
         updatedAt: 'updated_at'  // Alias updatedAt as updated_at
     });
 
-    GlobalID.associate = (models) => {
-        GlobalID.belongsTo(models.Users, { foreignKey: 'user_id' });
-    };
-
     return GlobalID
 }
