@@ -3,9 +3,7 @@ require("dotenv").config();
 const db = require("../configs/db");
 const Users = db.users;
 const GlobalID = db.globalId;
-const Certificate = db.certificate;
-const Community = db.community;
-const UserCer = db.user_cer;
+
 const {formatFilePath, readAndTransformImageToBase64} = require("../utils/services");
 
 const updateUser = async (req, res) => {
