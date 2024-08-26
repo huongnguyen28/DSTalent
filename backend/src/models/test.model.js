@@ -1,48 +1,51 @@
 module.exports = (sequelize, DataTypes) => {
-  const Community = sequelize.define(
-    "community",
+  const Test = sequelize.define(
+    "test",
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      name: {
+      question_file_path: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      decription: {
+      answer_file_path: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      score: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
+      comment: {
         type: DataTypes.TEXT,
+        allowNull: true,
       },
-      privacy: {
-        type: DataTypes.STRING,
-        defaultValue: "public",
-      },
-      cover_image: {
-        type: DataTypes.STRING,
-        defaultValue: null,
-      },
-      member_count: {
+      problem_phase: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
       },
-      rating: {
-        type: DataTypes.FLOAT,
+      duration: {
+        type: DataTypes.INTEGER,
         defaultValue: 0,
       },
-      contact_email: {
-        type: DataTypes.STRING,
-      },
-      contact_phone: {
-        type: DataTypes.STRING,
-      },
-      owner: {
+      created_by: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+      level_up_request_id: {
+        type: DataTypes.INTEGER,
+        defaultValue: null,
       },
     },
     {
-      tableName: "community",
+      tableName: "test",
     },
     {
       timestamps: true,
@@ -51,5 +54,5 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  return Community;
+  return Test;
 };
