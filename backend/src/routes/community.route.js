@@ -9,6 +9,6 @@ router.route("/")
     .get(getCommunityList)
     .post(createCommunity);
 
-router.get("/detail/:id", verifyToken, getCommunityDetail);
+router.get("/detail/:community_id", verifyToken, getCommunityDetail);
 
 module.exports = router;
