@@ -15,7 +15,7 @@ const updateUser = async (req, res) => {
             message: "User not found!"
         });
 
-    user.name = req.body.name;
+    user.full_name = req.body.full_name;
     user.about_me = req.body.about_me;
     user.day_of_birth = req.body.day_of_birth;
     user.avatar = req.file ? formatFilePath(req.file.filename) : user.avatar;
