@@ -7,12 +7,8 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         autoIncrement: true,
       },
-      global_id: {
+      tag_name: {
         type: DataTypes.STRING,
-        allowNull: false,
-      },
-      created_by: {
-        type: DataTypes.INTEGER,
         allowNull: false,
       },
     },
