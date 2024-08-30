@@ -58,7 +58,7 @@ const readAndTransformImageToBase64 = async (imagePath) => {
 };
 
 const STATUS_CODE = {
-  OK: 200,
+  SUCCESS: 200,
   CREATED: 201,
   ACCEPTED: 202,
   NO_CONTENT: 204,
