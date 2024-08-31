@@ -14,7 +14,7 @@ const {
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
 
-router.use(verifyToken);
+router.use(verifyToken, verifyMember);
 router.route("/").get(getChatRooms).post(createChatRoom);
 router
   .route("/:chat_room_id")

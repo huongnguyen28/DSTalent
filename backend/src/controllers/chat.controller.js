@@ -6,7 +6,7 @@ const ChatRoom = db.chat_room;
 const ChatMember = db.chat_member;
 
 const createChatRoom = async (req, res) => {
-  const communityId = req.body.community_id;
+  const communityId = req.params.community_id;
   const roomName = req.body.room_name;
   // memberList contains list of user_id
   // it must not be empty

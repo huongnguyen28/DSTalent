@@ -11,6 +11,6 @@ router.use("/users", userRoute);
 router.use("/auth", authRoute);
 router.use("/communities", communityRoute);
 router.use("/posts", postRoute);
-router.use("/chats", chatRoute);
+router.use("/communities/:community_id/chats", chatRoute);
 
 module.exports = router;

@@ -36,7 +36,7 @@ const getCommunityDetail = async (req, res) => {
   const communityId = req.params.community_id;
   const userId = req.user.user_id;
   const community = await Community.findOne({
-    where: { id: req.params.community_id },
+    where: { community_id: req.params.community_id },
     attributes: {
       exclude: ["owner"], // Exclude owner field to prevent sensitive information
     },
@@ -74,7 +74,7 @@ const getCommunityMembers = async (req, res) => {
   // user must be a member of the community to get the list of members
   const communityId = req.params.community_id;
   const page = req.query.page || 1;
-  const limit = req.query.limit || 10;
+  const limit = Number(req.query.limit) || 10;
   const offset = (page - 1) * limit;
   const sort = req.query.sort || "full_name";
   const order = req.query.order || "ASC";
