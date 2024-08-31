@@ -18,3 +18,5 @@ HOST_DB = something
 USER_DB = something
 PASSWORD_DB = something
 DATABASE = something
+
+MONGODB_URI = something
