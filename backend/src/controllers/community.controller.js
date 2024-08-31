@@ -30,7 +30,7 @@ const createCommunity = async (req, res) => {
 };
 
 const getCommunityDetail = async (req, res) => {
-    const community = await Community.findOne({where: {id: req.params.community_id}});
+    const community = await Community.findOne({where: {community_id: req.params.community_id}});
 
     if (!community)
         return res.status(404).json({
