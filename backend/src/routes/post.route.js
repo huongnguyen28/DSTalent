@@ -14,16 +14,21 @@ const {verifyToken} = require("../middlewares/verify-token");
 
 router.use(verifyToken);
 
-router.route("/", verifyToken)
+router.route("/")
     .get(getPosts)
     .post(createPost);
 
-router.get("/:post_id", verifyToken, getPost);
-router.patch("/:post_id", verifyToken, updatePost);
-router.post("/:post_id/comment", verifyToken, commentPost);
-router.patch("/:post_id/comment/:comment_id", verifyToken, updateComment);
-router.delete("/:post_id/comment/:comment_id", verifyToken, deleteComment);
-router.patch("/:post_id/like", verifyToken, likePost);
-router.delete("/:post_id", verifyToken, deletePost);
+router.route("/:post_id")
+    .get(getPost)
+    .patch(updatePost)
+    .delete(deletePost);
+
+router.post("/:post_id/comment", commentPost);
+
+router.route("/:post_id/comment/:comment_id")
+    .patch(updateComment)
+    .delete(deleteComment);
+
+router.patch("/:post_id/like", likePost);
 
 module.exports = router;
