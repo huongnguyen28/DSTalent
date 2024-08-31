@@ -245,7 +245,7 @@ const requestRefreshToken = async (req, res) => {
                 message: "You're not authenticated!"
             });
         
-        const userDB = await User.findByPk(user.id);
+        const userDB = await User.findByPk(user.user_id);
 
         if (!userDB || refreshToken !== userDB.dataValues.refresh_token)
             return res.status(401).json({
@@ -257,10 +257,6 @@ const requestRefreshToken = async (req, res) => {
             const newAccessToken = generateToken(user, process.env.JWT_ACCESS_KEY, process.env.ACCESS_TIME);
             const newRefreshToken = generateToken(user, process.env.JWT_REFRESH_KEY, process.env.REFRESH_TIME);
 
-            res.cookie("accessToken", newAccessToken, {
-                httpOnly: true,
-                sameSite: "strict"
-            });
             res.cookie("refreshToken", newRefreshToken, {
                 httpOnly: true,
                 path: "/api/auth/refresh",
@@ -276,7 +272,9 @@ const requestRefreshToken = async (req, res) => {
             await userDB.save();
 
             return res.status(200).json({
-                data: {},
+                data: {
+                    access_token: newAccessToken
+                },
                 status: 200,
                 message: "Refresh token successfully."
             });
