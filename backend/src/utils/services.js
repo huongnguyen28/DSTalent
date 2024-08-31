@@ -9,12 +9,12 @@ const formatFilePath = (fileName) => {
     return path;
 };
 
-const generateToken = (user, secret_key, expire) => {
+const generateToken = (user, secretKey, expire) => {
     return jwt.sign({
         user_id: user.user_id,
         username: user.username,
         full_name: user.full_name,
-    }, secret_key, {expiresIn: expire});
+    }, secretKey, {expiresIn: expire});
 };
 
 const generageVerifyCode = (username) => {
