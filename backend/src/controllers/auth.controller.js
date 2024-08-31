@@ -3,7 +3,6 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../configs/nodemailer");
 require("dotenv").config();
-const { formatResponse, STATUS_CODE } = require("../utils/services");
 
 const db = require("../configs/db");
 const User = db.user;
@@ -17,21 +16,12 @@ const {
 
 const registerUser = async (req, res) => {
   const user = await User.findOne({ where: { username: req.body.username } });
-  const email = await User.findOne({ where: { email: req.body.email } });
   if (user)
     return res.status(400).json({
       data: {},
       status: 400,
       message: "User already exists!",
     });
-  if (email) {
-    return formatResponse(
-      res,
-      {},
-      STATUS_CODE.BAD_REQUEST,
-      "Email already exists!"
-    );
-  }
 
   const salt = bcrypt.genSaltSync(10);
   const hashedPassword = bcrypt.hashSync(req.body.password, salt);
@@ -68,12 +58,17 @@ const verifyEmail = async (req, res) => {
   const verifyCode = req.body.verify_code;
   const username = verifyCode.slice(0, verifyCode.length - 7);
   const user = await User.findOne({ where: { username: username } });
-  if (!user || user.verify_code !== verifyCode) {
-    await user.destroy();
-    return res.status(204).json({
+  if (user.is_verify)
+    return res.status(400).json({
       data: {},
-      status: 204,
-      message: "Wrong verify code. Can not create account!",
+      status: 400,
+      message: "This email is verified!",
+    });
+  if (!user || user.verify_code !== verifyCode) {
+    return res.status(400).json({
+      data: {},
+      status: 400,
+      message: "Wrong verify code.!",
     });
   }
 
@@ -89,7 +84,7 @@ const verifyEmail = async (req, res) => {
   });
 };
 
-const forgetPassword = async (req, res) => {
+const getVerifyCode = async (req, res) => {
   email = req.body.email;
   const user = await User.findOne({ where: { email: req.body.email } });
   if (!user)
@@ -369,6 +364,6 @@ module.exports = {
   oauthGoogle,
   registerUser,
   verifyEmail,
-  forgetPassword,
+  getVerifyCode,
   resetPassword,
 };

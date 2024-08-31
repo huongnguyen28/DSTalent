@@ -9,8 +9,8 @@ module.exports = (mongoose) => {
             type: { type: String, required: true } // Ví dụ: 'image/png', 'video/mp4'
         }],
         likes: [{
-            userID: { type: Number, required: true },
-            userName: { type: String, required: true }
+            user_id: { type: Number, required: true },
+            user_name: { type: String, required: true }
         }],
         comments: [{
             text: { type: String, required: true },
