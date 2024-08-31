@@ -245,7 +245,7 @@ const requestRefreshToken = async (req, res) => {
                 message: "You're not authenticated!"
             });
         
-        const userDB = await User.findByPk(user.id);
+        const userDB = await User.findByPk(user.user_id);
 
         if (!userDB || refreshToken !== userDB.dataValues.refresh_token)
             return res.status(401).json({
