@@ -11,10 +11,10 @@ const {
   sendChatMessage,
 } = require("../controllers/chat.controller");
 
-const { verifyToken } = require("../middlewares/verify-token");
-const { verifyMember } = require("../middlewares/verify-member");
+// const { verifyToken } = require("../middlewares/verify-token");
+// const { verifyMember } = require("../middlewares/verify-member");
 
-router.use(verifyToken, verifyMember);
+// router.use(verifyToken, verifyMember);
 router.route("/").get(getChatRooms).post(createChatRoom);
 router
   .route("/:chat_room_id")

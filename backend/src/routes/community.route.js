@@ -12,6 +12,7 @@ const {
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
+const chatRoute = require("./chat.route");
 
 router.use(verifyToken);
 
@@ -29,5 +30,7 @@ router
   .route("/:community_id/members/:member_id")
   .get(verifyMember, getMemberProfile)
   .put(verifyMember, updateMemberProfile);
+
+router.use("/:community_id/chats", verifyMember, chatRoute);
 
 module.exports = router;

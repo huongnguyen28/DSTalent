@@ -1,12 +1,16 @@
 const { formatResponse, STATUS_CODE } = require("../utils/services");
 const db = require("../configs/db.js");
-const mongoose = require("mongoose");
-const { format } = require("sequelize/lib/utils");
 const ChatRoom = db.chat_room;
 const ChatMember = db.chat_member;
+const Member = db.member;
+const Community = db.community;
+const User = db.user;
+const { Op } = require("sequelize");
 
+// Create a chat room
+// Body: { room_name, members: [user_id1, user_id2, ...] }
 const createChatRoom = async (req, res) => {
-  const communityId = req.params.community_id;
+  const communityId = req.member.community_id;
   const roomName = req.body.room_name;
   // memberList contains list of user_id
   // it must not be empty
@@ -61,11 +65,18 @@ const createChatRoom = async (req, res) => {
 const getChatRooms = async (req, res) => {
   const userId = req.user.user_id;
   const chatMembers = await ChatMember.find({ user_id: userId });
+  // console.log(chatMembers);
   const chatRoomIds = chatMembers.map((member) => member.chat_room_id);
+  // console.log(chatRoomIds);
+  // const communityId = req.params.community_id;
+  const communityId = req.member.community_id;
+  // console.log(communityId);
   // Select only 'room_name', '_id' (which is the chat_room_id), and 'community_id'
-  const chatRooms = await ChatRoom.find({ _id: { $in: chatRoomIds } }).select(
-    "room_name community_id"
-  );
+  const chatRooms = await ChatRoom.find({
+    _id: { $in: chatRoomIds },
+    community_id: communityId,
+  });
+  // console.log(chatRooms);
 
   // If you want to explicitly include the _id as chat_room_id
   const formattedChatRooms = chatRooms.map((room) => ({
@@ -87,11 +98,22 @@ const getChatRooms = async (req, res) => {
 const getChatRoomDetails = async (req, res) => {
   const chatRoomId = req.params.chat_room_id;
   // check if user is a member of the chat room
-  const userId = req.user.user_id;
+  const userId = Number(req.user.user_id);
   const chatMember = await ChatMember.findOne({
     chat_room_id: chatRoomId,
     user_id: userId,
   });
+  console.log(userId);
+  console.log(chatRoomId);
+  console.log(chatMember);
+  if (!chatMember) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.NOT_FOUND,
+      "Chat Room not found!"
+    );
+  }
   if (chatMember.is_joined === false) {
     return formatResponse(
       res,
@@ -114,11 +136,19 @@ const getChatRoomDetails = async (req, res) => {
     is_joined: true,
   });
   const members = chatMembers.map((member) => member.user_id);
+  const responseMembers = await User.findAll({
+    attributes: ["user_id", "full_name", "avatar"],
+    where: {
+      user_id: {
+        [Op.in]: members, // Use the Op.in operator to match user_id with members array
+      },
+    },
+  });
   const formattedChatRoomDetails = {
     chat_room_id: chatRoom._id,
     room_name: chatRoom.room_name,
     community_id: chatRoom.community_id,
-    members: members,
+    members: responseMembers,
     created_at: chatRoom.createdAt,
     updated_at: chatRoom.updatedAt,
   };

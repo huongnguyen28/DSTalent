@@ -2,7 +2,7 @@ module.exports = (mongoose) => {
   // Create the chatMemberSchema
   const chatMemberSchema = new mongoose.Schema({
     chat_room_id: {
-      type: Number,
+      type: String,
       required: true,
     },
     // member_id: {
