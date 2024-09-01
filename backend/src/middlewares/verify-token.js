@@ -6,31 +6,31 @@ const verifyToken = (req, res, next) => {
     const accessToken = authorization.split(" ")[1];
     jwt.verify(accessToken, process.env.JWT_ACCESS_KEY, (err, user) => {
       if (err) {
-        if (err.name === 'TokenExpiredError') 
+        if (err.name === "TokenExpiredError")
           return res.status(401).json({
             data: {},
             status: 401,
-            message: "Token has expired!"
+            message: "Token has expired!",
           });
-        else return res.status(403).json({
-          data: {},
-          status: 403,
-          message: "Token is not valid!"
-        });
+        else
+          return res.status(403).json({
+            data: {},
+            status: 403,
+            message: "Token is not valid!",
+          });
       }
       req.user = user;
       next();
     });
-  } 
-  else {
+  } else {
     return res.status(401).json({
       data: {},
       status: 401,
-      message: "You are not authenticated!"
+      message: "You are not authenticated!",
     });
   }
 };
 
 module.exports = {
-  verifyToken
+  verifyToken,
 };
