@@ -6,9 +6,6 @@ const {
     getUser,
     useWallet,
     createWallet,
-    getUpLevelPhase,
-    createUpLevelRequest,
-    getCurrentUpLevelRequestId,
 } = require("../controllers/user.controller");
 const {verifyToken} = require("../middlewares/verify-token");
 const storage = require("../configs/multer");
@@ -22,13 +19,21 @@ router.get("/:user_id", getUser);
 router.post("/wallet", useWallet);
 router.post("/wallet/create-new", createWallet);
 
-// Tín ========================
+// ======================== Tín ========================
 const { verifyMember } = require('../middlewares/verify-member');
 
-router.get('/me/communities/:community_id/up-level-phase', verifyMember, getUpLevelPhase);
-router.post('/me/communities/:community_id/up-level-request', verifyMember, createUpLevelRequest)
-router.get('/me/communities/:community_id/current-up-level-request-id', verifyMember, getCurrentUpLevelRequestId)  
+const {
+    getUpLevelPhase,
+    createUpLevelRequest,
+    getCurrentUpLevelRequestId,
+    getCurrentLevel,
+} = require('../controllers/up_level.controller');
 
-// ============================
+router.get('/me/communities/:community_id/current-level', verifyMember, getCurrentLevel);
+router.get('/me/communities/:community_id/up-level-phase', verifyMember, getUpLevelPhase);
+router.post('/me/communities/:community_id/up-level-request', verifyMember, createUpLevelRequest);
+router.get('/me/communities/:community_id/current-up-level-request-id', verifyMember, getCurrentUpLevelRequestId);
+
+// =====================================================
 
 module.exports = router;
