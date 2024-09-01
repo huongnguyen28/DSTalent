@@ -21,7 +21,8 @@ module.exports = (sequelize, DataTypes) => {
       },
       agreed_judge: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        // allowNull: false,
+        defaultValue: 0,
       },
       score: {
         type: DataTypes.INTEGER,
