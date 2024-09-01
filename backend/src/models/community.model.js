@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
       },
       privacy: {
-        type: DataTypes.STRING,
+        type: DataTypes.ENUM('public', 'private'),
         defaultValue: "public",
       },
       cover_image: {
@@ -39,6 +39,10 @@ module.exports = (sequelize, DataTypes) => {
       owner: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+      is_active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
       },
     },
     {
