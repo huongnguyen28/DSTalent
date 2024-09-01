@@ -30,10 +30,14 @@ const createCommunity = async (req, res) => {
     const {name, description, privacy, tags, cover_image} = req.body;
 
     const tagsToCreate = [];
+    const tag_arr = [];
+
     for (const tag of tags) {
       const existingTag = await Tag.findOne({ where: { tag_name: tag } });
       if (!existingTag) {
         tagsToCreate.push({ tag_name: tag });
+      } else {
+        tag_arr.push(existingTag);
       }
     }
 
@@ -53,7 +57,8 @@ const createCommunity = async (req, res) => {
       contact_phone: req.user.phone
     });
 
-    const tag_arr = await Tag.findAll({ where: { tag_name: tags } });
+    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
+    tag_arr.push(...new_tag_arr);
     const tag_arr_id = tag_arr.map(tag => tag.tag_id);
     const communityTagsToCreate = tag_arr_id.map(tagId => ({
       community_id: newCommunity.community_id,
@@ -64,6 +69,13 @@ const createCommunity = async (req, res) => {
       ignoreDuplicates: true
     });
     
+    await Member.create({
+      community_id: newCommunity.community_id,
+      user_id: req.user.user_id,
+      is_joined: true,
+      is_admin: true
+    });
+
     return formatResponse(
       res,
       {
@@ -91,33 +103,130 @@ const createCommunity = async (req, res) => {
   }
 };
 
+const updateCommunity = async (req, res) => {
+  const communityId = req.params.community_id;
+
+  const existingCommunity = await Community.findOne(
+    {
+      where: { community_id: communityId }
+    }
+  );
+
+  const { name, description, privacy, tags, cover_image } = req.body;
+  let modifed_tags = false;
+
+  if (typeof tags !== 'undefined') {
+    modifed_tags = true;
+    await Community_Tag.destroy({ where: { community_id: communityId } });
+    const tagsToCreate = [];
+    const tag_arr = [];
+
+    for (const tag of tags) {
+      const existingTag = await Tag.findOne({ where: { tag_name: tag } });
+      if (!existingTag) {
+        tagsToCreate.push({ tag_name: tag });
+      } else {
+        tag_arr.push(existingTag);
+      }
+    }
+
+    await Tag.bulkCreate(tagsToCreate, {
+      ignoreDuplicates: true
+    });
+
+    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
+    tag_arr.push(...new_tag_arr);
+    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    const communityTagsToCreate = tag_arr_id.map(tagId => ({
+      community_id: communityId,
+      tag_id: tagId
+    }));
+
+    await Community_Tag.bulkCreate(communityTagsToCreate, {
+      ignoreDuplicates: true
+    }); 
+  }
+
+  const updatedCommunity = await Community.update(
+    {
+      name: name || existingCommunity.name,
+      description: description || existingCommunity.description,
+      privacy: privacy || existingCommunity.privacy,
+      cover_image: cover_image || existingCommunity.cover_image,
+    },
+    {
+      where: { community_id: communityId },
+    }
+  );
+
+  if (updatedCommunity[0] === 0 && !modifed_tags) { 
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.NOT_MODIFIED,
+      "No changes were made!"
+    );
+  }
+
+  return formatResponse(
+    res,
+    {
+      community_id: communityId,
+      name: name || existingCommunity.name,
+      description: description || existingCommunity.description,
+      privacy: privacy || existingCommunity.privacy,
+      tags: tags,
+      cover_image: cover_image || existingCommunity.cover_image,
+      member_count: existingCommunity.member_count,
+      rating: existingCommunity.rating,
+      contact_phone: existingCommunity.contact_phone,
+      contact_email: existingCommunity.contact_email
+    },
+    STATUS_CODE.SUCCESS,
+    "Community updated successfully!"
+  );
+};
+
+const deleteCommunity = async (req, res) => {
+  const communityId = req.params.community_id;
+  await Community.update(
+    { is_active: false },
+    {
+      where: { community_id: communityId },
+    }
+  );
+  return formatResponse(
+    res,
+    {},
+    STATUS_CODE.SUCCESS,
+    "Community deleted successfully!"
+  );
+};
+
 const getCommunityDetail = async (req, res) => {
   const communityId = req.params.community_id;
   const userId = req.user.user_id;
   const community = await Community.findOne({
-    where: { id: req.params.community_id },
+    where: { community_id: communityId },
     attributes: {
       exclude: ["owner"], // Exclude owner field to prevent sensitive information
     },
   });
-  if (userId) {
-    const user = await User.findOne({ where: { user_id: userId } });
-    if (user) {
-      const isJoined = await Member.findOne({
-        where: { community_id: communityId, user_id: userId },
-        attributes: ["is_joined"],
-      });
-      community.dataValues.is_joined = isJoined ? isJoined.is_joined : false;
-    }
-  }
-
-  if (!community)
+  
+  if(!community || !community.is_active) {
     return formatResponse(
       res,
       {},
       STATUS_CODE.NOT_FOUND,
       "Community not found!"
     );
+  }
+  
+  const isJoined = await Member.findOne({
+    where: { community_id: communityId, user_id: userId },
+    attributes: ["is_joined"],
+  });
+  community.dataValues.is_joined = isJoined ? isJoined.is_joined : false;
 
   return formatResponse(
     res,
@@ -301,4 +410,6 @@ module.exports = {
   leaveCommunity,
   getMemberProfile,
   updateMemberProfile,
+  updateCommunity,
+  deleteCommunity
 };
