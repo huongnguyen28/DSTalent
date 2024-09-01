@@ -21,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       up_level_phase: {
         type: DataTypes.INTEGER,
-        defaultValue: 0,
+        defaultValue: 1,
       },
       current_level: {
         type: DataTypes.INTEGER,

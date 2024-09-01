@@ -1,8 +1,8 @@
 module.exports = (sequelize, DataTypes) => {
-  const LevelUpRequest = sequelize.define(
-    "level_up_request",
+  const UpLevelRequest = sequelize.define(
+    "up_level_request",
     {
-      level_up_request_id: {
+      up_level_request_id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
@@ -21,7 +21,8 @@ module.exports = (sequelize, DataTypes) => {
       },
       agreed_judge: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        //allowNull: false,
+        defaultValue: 0,
       },
       score: {
         type: DataTypes.INTEGER,
@@ -33,9 +34,9 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
-      tableName: "level_up_request",
+      tableName: "up_level_request",
     }
   );
 
-  return LevelUpRequest;
+  return UpLevelRequest;
 };

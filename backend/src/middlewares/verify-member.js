@@ -13,7 +13,7 @@ const verifyMember = async (req, res, next) => {
     return formatResponse(
       res,
       {},
-      STATUS_CODE.NOT_FOUND,
+      STATUS_CODE.FORBIDDEN,
       "User is not a member of this community!"
     );
   }
@@ -23,7 +23,7 @@ const verifyMember = async (req, res, next) => {
     return formatResponse(
       res,
       {},
-      STATUS_CODE.NOT_FOUND,
+      STATUS_CODE.FORBIDDEN,
       "User is not a member of this community!"
     );
 

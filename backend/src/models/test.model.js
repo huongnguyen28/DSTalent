@@ -39,7 +39,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      level_up_request_id: {
+      up_level_request_id: {
         type: DataTypes.INTEGER,
         defaultValue: null,
       },
