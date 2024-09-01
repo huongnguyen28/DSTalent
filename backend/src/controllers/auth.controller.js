@@ -13,6 +13,12 @@ const {readAndTransformImageToBase64,
     generateToken} = require("../utils/services");
 
 const registerUser = async (req, res) => {
+    if (!req.body.username || !req.body.email || !req.body.full_name || !req.body.password)
+        return res.status(400).json({
+            data: {},
+            status: 400,
+            message: "All fields are required"
+        });
     const user = await User.findOne({ where: { username: req.body.username}});
     if (user)
         return res.status(400).json({
@@ -53,6 +59,12 @@ const registerUser = async (req, res) => {
 }
 
 const verifyEmail = async (req, res) => {
+    if (!req.body.verify_code)
+        return res.status(400).json({
+            data: {},
+            status: 400,
+            message: "All fields are required"
+        });
     const verifyCode = req.body.verify_code;
     const username = verifyCode.slice(0, verifyCode.length - 7)
     const user = await User.findOne({ where: { username: username}});
@@ -83,6 +95,12 @@ const verifyEmail = async (req, res) => {
 };
 
 const getVerifyCode = async (req, res) => {
+    if (!req.body.email)
+        return res.status(400).json({
+            data: {},
+            status: 400,
+            message: "All fields are required"
+        });
     email = req.body.email;
     const user = await User.findOne({ where: { email: req.body.email }});
     if (!user)
@@ -106,6 +124,12 @@ const getVerifyCode = async (req, res) => {
 };
 
 const resetPassword = async (req, res) => {
+    if (!req.body.password || !req.body.verify_code)
+        return res.status(400).json({
+            data: {},
+            status: 400,
+            message: "All fields are required"
+        });
     const verifyCode = req.body.verify_code;
     const username = verifyCode.slice(0, verifyCode.length - 7)
     const user = await User.findOne({ where: { username: username}});
@@ -132,9 +156,12 @@ const resetPassword = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-    if (!req.body.username || !req.body.password) {
-        return res.status(400).json({ message: 'All fields are required' });
-      }
+    if (!req.body.username || !req.body.password)
+        return res.status(400).json({
+            data: {},
+            status: 400,
+            message: "All fields are required"
+        });
     const user = await User.findOne({ where: { username: req.body.username }});
     if (!user)
         return res.status(404).json({
@@ -194,6 +221,12 @@ const loginUser = async (req, res) => {
 
 const logoutUser = async (req, res) => {
     const refreshToken = req.cookies.refreshLogout;
+    if (!refreshToken)
+        return res.status(401).json({
+            data: {},
+            status: 401,
+            message: "You're not authenticated!"
+        });
 
     res.clearCookie("refreshToken");
     res.clearCookie("refreshLogout");
