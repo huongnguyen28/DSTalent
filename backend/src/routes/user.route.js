@@ -27,7 +27,7 @@ const { verifyMember } = require('../middlewares/verify-member');
 
 router.get('/me/communities/:community_id/up-level-phase', verifyMember, getUpLevelPhase);
 router.post('/me/communities/:community_id/up-level-request', verifyMember, createUpLevelRequest)
-router.get('/me/communities/:community_id/current-up-level-request', verifyMember, getCurrentUpLevelRequestId)  
+router.get('/me/communities/:community_id/current-up-level-request-id', verifyMember, getCurrentUpLevelRequestId)  
 
 // ============================
 
