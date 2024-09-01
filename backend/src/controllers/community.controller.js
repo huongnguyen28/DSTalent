@@ -26,67 +26,69 @@ const getCommunityList = async (req, res) => {
 };
 
 const createCommunity = async (req, res) => {
-    try {
-        const {name, description, privacy, tags, cover_image} = req.body;
+  try {
+    const {name, description, privacy, tags, cover_image} = req.body;
 
-        const tagsToCreate = [];
-        for (const tag of tags) {
-            const existingTag = await Tag.findOne({ where: { tag_name: tag } });
-            if (!existingTag) {
-                tagsToCreate.push({ tag_name: tag });
-            }
-        }
-
-        await Tag.bulkCreate(tagsToCreate, {
-            ignoreDuplicates: true
-        });
-
-        const newCommunity = await Community.create({
-            name,
-            description,
-            privacy,
-            cover_image,
-            owner: req.user.user_id,
-            member_count: 1,
-            rating: 0,
-            contact_email: req.user.email,
-            contact_phone: req.user.phone
-        });
-
-        const tag_arr = await Tag.findAll({ where: { tag_name: tags } });
-        const tag_arr_id = tag_arr.map(tag => tag.tag_id);
-        const communityTagsToCreate = tag_arr_id.map(tagId => ({
-            community_id: newCommunity.community_id,
-            tag_id: tagId
-        }));
-
-        await Community_Tag.bulkCreate(communityTagsToCreate, {
-            ignoreDuplicates: true
-        });
-        
-        res.status(201).json({
-            status: 201,
-            message: "Create community successfully!",
-            data: {
-                community_id: newCommunity.community_id,
-                name: newCommunity.name,
-                description: newCommunity.description,
-                privacy: newCommunity.privacy,
-                tags: tags,
-                cover_image: newCommunity.cover_image,
-                member_count: newCommunity.member_count,
-                rating: newCommunity.rating,
-                contact_phone: newCommunity.contact_phone,
-                contact_email: newCommunity.contact_email
-            }
-        });
-    } catch(error) {
-        res.status(500).json({
-            data: {},
-            status: 500,
-            message: "Failed to create community!"
-        });
+    const tagsToCreate = [];
+    for (const tag of tags) {
+      const existingTag = await Tag.findOne({ where: { tag_name: tag } });
+      if (!existingTag) {
+        tagsToCreate.push({ tag_name: tag });
+      }
     }
+
+    await Tag.bulkCreate(tagsToCreate, {
+      ignoreDuplicates: true
+    });
+
+    const newCommunity = await Community.create({
+      name,
+      description,
+      privacy,
+      cover_image,
+      owner: req.user.user_id,
+      member_count: 1,
+      rating: 0,
+      contact_email: req.user.email,
+      contact_phone: req.user.phone
+    });
+
+    const tag_arr = await Tag.findAll({ where: { tag_name: tags } });
+    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    const communityTagsToCreate = tag_arr_id.map(tagId => ({
+      community_id: newCommunity.community_id,
+      tag_id: tagId
+    }));
+
+    await Community_Tag.bulkCreate(communityTagsToCreate, {
+      ignoreDuplicates: true
+    });
+    
+    return formatResponse(
+      res,
+      {
+        community_id: newCommunity.community_id,
+        name: newCommunity.name,
+        description: newCommunity.description,
+        privacy: newCommunity.privacy,
+        tags: tags,
+        cover_image: newCommunity.cover_image,
+        member_count: newCommunity.member_count,
+        rating: newCommunity.rating,
+        contact_phone: newCommunity.contact_phone,
+        contact_email: newCommunity.contact_email
+      },
+      STATUS_CODE.CREATED,
+      "Create community successfully!"
+    );
+  } catch(error) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to create community!"
+    );
+  }
 };
 
 const getCommunityDetail = async (req, res) => {
