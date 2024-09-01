@@ -5,7 +5,7 @@ const Tag = db.tag;
 const PostTag = db.post_tag;
 
 const getPosts = async (req, res) => {
-    const { page = 1, searchQuery, tags, creator_id, community_id } = req.query;
+    const { page = 1, search_query, tags, creator_id, community_id } = req.query;
     const LIMIT = 8;
     const startIndex = (Number(page) - 1) * LIMIT;
 
@@ -24,8 +24,8 @@ const getPosts = async (req, res) => {
         query.community_id = Number(community_id);
 
         // Building the query based on search criteria
-        if (searchQuery) {
-            query.caption = { $regex: searchQuery, $options: 'i' };
+        if (search_query) {
+            query.caption = { $regex: search_query, $options: 'i' };
         }
 
         if (creator_id) {
@@ -115,8 +115,8 @@ const createPost = async (req, res) => {
             attachments,
             // đang chờ Ta Chi Thanh Danh gan gia tri cho req.community_id 
             community_id: req.community_id,
-            creator_name: req.user.name,
-            creator_id: req.user.id,
+            creator_name: req.user.full_name,
+            creator_id: req.user.user_id,
             // createdAt: new Date().toISOString(),
             likes: [],  // prevent user from bufing the likes   
             comments: [], // prevent user from bufing the comments
@@ -211,8 +211,8 @@ const commentPost = async (req, res) => {
 
         // Create the new comment
         const comment = {
-            creator_name: req.user.name,
-            creator_id: req.user.id,
+            creator_name: req.user.full_name,
+            creator_id: req.user.user_id,
             text: text,
             attachment: attachment,
             createdAt: new Date(),
@@ -245,6 +245,7 @@ const commentPost = async (req, res) => {
 
 
 const updatePost = async (req, res) => {
+    const transaction = await db.sequelize.transaction();
     const { post_id } = req.params;
     const { caption, attachments, tags } = req.body;
 
@@ -252,7 +253,7 @@ const updatePost = async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(post_id)) {
             return res.status(404).json({
                 status: 404,
-                message: `No post with id: ${post_id}`
+                message: `No post with id: ${post_id}`,
             });
         }
 
@@ -260,36 +261,58 @@ const updatePost = async (req, res) => {
         if (!post) {
             return res.status(404).json({
                 status: 404,
-                message: "Post not found"
+                message: "Post not found",
             });
         }
 
         post.caption = caption;
         post.attachments = attachments;
-        post.tags = tags;
+        await post.save();
 
-        const updatedPost = await post.save();
+        if (tags && tags.length > 0) {
+            await PostTag.destroy({
+                where: { post_id: post_id.toString() },
+                transaction
+            });
+
+            for (let tag_name of tags) {
+                const [tag] = await Tag.findOrCreate({
+                    where: { tag_name: tag_name },
+                    transaction,
+                });
+
+                await PostTag.create({
+                    post_id: post._id.toString(),
+                    tag_id: tag.tag_id,
+                }, { transaction });
+            }
+        }
+
+        await transaction.commit();
 
         return res.status(200).json({
-            data: updatedPost,
+            data: post,
+            tags: tags,
             status: 200,
-            message: "Post updated successfully!"
+            message: "Post updated successfully!",
         });
 
     } catch (error) {
+        await transaction.rollback();
         return res.status(500).json({
             status: 500,
             message: "Failed to update post",
-            error: error.message
+            error: error.message,
         });
     }
 };
 
 
 
+
 const updateComment = async (req, res) => {
     const { post_id, comment_id } = req.params;
-    const { text, selectedFile } = req.body;
+    const { text, attachment } = req.body;
 
     try {
         // Find the post by post_id
@@ -330,9 +353,10 @@ const updateComment = async (req, res) => {
 
 const likePost = async (req, res) => {
     const { post_id } = req.params;
-    const { id: userID, name: userName } = req.user; // Adjusted to match req.user structure
+    const { user_id, full_name } = req.user; // Adjusted to match req.user structure
 
     try {
+        
         // Validate the ID
         if (!mongoose.Types.ObjectId.isValid(post_id)) {
             return res.status(404).json({
@@ -341,11 +365,11 @@ const likePost = async (req, res) => {
             });
         }
 
-        // Validate userID and userName
-        if (!userID || !userName) {
+        // Validate user_id and full_name
+        if (!user_id || !full_name) {
             return res.status(400).json({
                 status: 400,
-                message: "Missing required fields: userID and userName"
+                message: "Missing required fields: user_id and full_name"
             });
         }
 
@@ -361,13 +385,13 @@ const likePost = async (req, res) => {
         }
 
         // Check if the user has already liked the post
-        const index = post.likes.findIndex((like) => like.userID === userID);
+        const index = post.likes.findIndex((like) => like.user_id === user_id);
 
         // Add or remove like
         if (index === -1) {
-            post.likes.push({ userID, userName });
+            post.likes.push({ user_id, user_name: full_name });
         } else {
-            post.likes = post.likes.filter((like) => like.userID !== userID);
+            post.likes = post.likes.filter((like) => like.user_id !== user_id);
         }
 
         // Save the updated post
