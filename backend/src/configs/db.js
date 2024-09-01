@@ -1,40 +1,42 @@
-const { Sequelize, DataTypes } = require('sequelize');
-const mongoose = require('mongoose');
+const { Sequelize, DataTypes } = require("sequelize");
+const mongoose = require("mongoose");
 require("dotenv").config();
 
 // Sequelize setup
 const sequelize = new Sequelize(
-    process.env.DATABASE,
-    process.env.USER_DB,
-    process.env.PASSWORD_DB, {
-        host: process.env.HOST_DB,
-        dialect: 'mysql',
-        // operatorsAliases: false,
-    }
+  process.env.DATABASE,
+  process.env.USER_DB,
+  process.env.PASSWORD_DB,
+  {
+    host: process.env.HOST_DB,
+    dialect: "mysql",
+    // operatorsAliases: false,
+  }
 );
 
 // MongoDB setup
 const connectMongoDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
-        console.log('MongoDB connected...');
-    } catch (err) {
-        console.error('MongoDB connection error:', err);
-        process.exit(1);
-    }
+  try {
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("MongoDB connected...");
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
+  }
 };
 
 // Authenticate Sequelize
-sequelize.authenticate()
-    .then(() => {
-        console.log('MySQL connected..');
-    })
-    .catch(err => {
-        console.log('MySQL Error: ' + err);
-    });
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log("MySQL connected..");
+  })
+  .catch((err) => {
+    console.log("MySQL Error: " + err);
+  });
 
 // Connect MongoDB
 connectMongoDB();
@@ -70,10 +72,7 @@ db.community_tag = require("../models/community_tag.model.js")(
   sequelize,
   DataTypes
 );
-db.post_tag = require("../models/post_tag.model.js")(
-  sequelize,
-  DataTypes
-);
+db.post_tag = require("../models/post_tag.model.js")(sequelize, DataTypes);
 db.document_tag = require("../models/document_tag.model.js")(
   sequelize,
   DataTypes
@@ -86,6 +85,8 @@ db.document_access = require("../models/document_access.model.js")(
 // MongoDB models
 db.posts = require("../models/post.model.js")(mongoose);
 
+db.chat_room = require("../models/chat_room.model.js")(mongoose);
+db.chat_member = require("../models/chat_member.model.js")(mongoose);
 
 
 // Communities owner refers to users.id
@@ -192,12 +193,9 @@ db.basic_test_submit.belongsTo(db.basic_test, { foreignKey: "basic_test_id" });
 db.basic_test.hasMany(db.basic_test_submit, { foreignKey: "basic_test_id" });
 
 
-
-
 // Sync MySQL models
-db.sequelize.sync({ force: false })
-    .then(() => {
-        console.log('MySQL sync done!');
-    });
+db.sequelize.sync({ force: false }).then(() => {
+  console.log("MySQL sync done!");
+});
 
 module.exports = db;

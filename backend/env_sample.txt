@@ -19,4 +19,4 @@ USER_DB = something
 PASSWORD_DB = something
 DATABASE = something
 
-MONGODB_URI = something
+MONGODB_URI = mongodb+srv://username:password@yourcluster.mongodb.net/your-database
