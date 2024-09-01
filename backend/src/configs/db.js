@@ -147,20 +147,20 @@ db.user.hasMany(db.document_access, {
 db.test.belongsTo(db.user, { foreignKey: "created_by" });
 db.user.hasMany(db.test, { foreignKey: "created_by" });
 
-// Test level_up_request_id refers to level_up_request.id
-db.test.belongsTo(db.level_up_request, { foreignKey: "level_up_request_id" });
-db.level_up_request.hasMany(db.test, { foreignKey: "level_up_request_id" });
+// Test up_level_request_id refers to up_level_request.id
+db.test.belongsTo(db.up_level_request, { foreignKey: "up_level_request_id" });
+db.up_level_request.hasMany(db.test, { foreignKey: "up_level_request_id" });
 
 // Level_up_request member_id refers to members.id
-db.level_up_request.belongsTo(db.member, { foreignKey: "member_id" });
-db.member.hasMany(db.level_up_request, { foreignKey: "member_id" });
+db.up_level_request.belongsTo(db.member, { foreignKey: "member_id" });
+db.member.hasMany(db.up_level_request, { foreignKey: "member_id" });
 
-// Members current_up_level_request_id refers to level_up_request.id
-db.member.belongsTo(db.level_up_request, {
-  foreignKey: "current_level_up_request_id",
+// Members current_up_level_request_id refers to up_level_request.id
+db.member.belongsTo(db.up_level_request, {
+  foreignKey: "current_up_level_request_id",
 });
-db.level_up_request.hasOne(db.member, {
-  foreignKey: "current_level_up_request_id",
+db.up_level_request.hasOne(db.member, {
+  foreignKey: "current_up_level_request_id",
 });
 
 // Wallet created_by refers to users.id
