@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
       },
       privacy: {
-        type: DataTypes.ENUM('public', 'private'),
+        type: DataTypes.ENUM("public", "private"),
         defaultValue: "public",
       },
       cover_image: {
