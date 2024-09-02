@@ -26,18 +26,22 @@ const getCommunityList = async (req, res) => {
 
 const createCommunity = async (req, res) => {
   try {
-    const { name, description, privacy, tags, cover_image } = req.body;
+    const {name, description, privacy, tags, cover_image} = req.body;
 
     const tagsToCreate = [];
+    const tag_arr = [];
+
     for (const tag of tags) {
       const existingTag = await Tag.findOne({ where: { tag_name: tag } });
       if (!existingTag) {
         tagsToCreate.push({ tag_name: tag });
+      } else {
+        tag_arr.push(existingTag);
       }
     }
 
     await Tag.bulkCreate(tagsToCreate, {
-      ignoreDuplicates: true,
+      ignoreDuplicates: true
     });
 
     const newCommunity = await Community.create({
@@ -49,24 +53,31 @@ const createCommunity = async (req, res) => {
       member_count: 1,
       rating: 0,
       contact_email: req.user.email,
-      contact_phone: req.user.phone,
+      contact_phone: req.user.phone
     });
 
-    const tag_arr = await Tag.findAll({ where: { tag_name: tags } });
-    const tag_arr_id = tag_arr.map((tag) => tag.tag_id);
-    const communityTagsToCreate = tag_arr_id.map((tagId) => ({
+    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
+    tag_arr.push(...new_tag_arr);
+    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    const communityTagsToCreate = tag_arr_id.map(tagId => ({
       community_id: newCommunity.community_id,
-      tag_id: tagId,
+      tag_id: tagId
     }));
 
     await Community_Tag.bulkCreate(communityTagsToCreate, {
-      ignoreDuplicates: true,
+      ignoreDuplicates: true
+    });
+    
+    await Member.create({
+      community_id: newCommunity.community_id,
+      user_id: req.user.user_id,
+      is_joined: true,
+      is_admin: true
     });
 
-    res.status(201).json({
-      status: 201,
-      message: "Create community successfully!",
-      data: {
+    return formatResponse(
+      res,
+      {
         community_id: newCommunity.community_id,
         name: newCommunity.name,
         description: newCommunity.description,
@@ -76,45 +87,145 @@ const createCommunity = async (req, res) => {
         member_count: newCommunity.member_count,
         rating: newCommunity.rating,
         contact_phone: newCommunity.contact_phone,
-        contact_email: newCommunity.contact_email,
+        contact_email: newCommunity.contact_email
       },
-    });
-  } catch (error) {
-    res.status(500).json({
-      data: {},
-      status: 500,
-      message: "Failed to create community!",
-    });
+      STATUS_CODE.CREATED,
+      "Create community successfully!"
+    );
+  } catch(error) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to create community!"
+    );
   }
+};
+
+const updateCommunity = async (req, res) => {
+  const communityId = req.params.community_id;
+
+  const existingCommunity = await Community.findOne(
+    {
+      where: { community_id: communityId }
+    }
+  );
+
+  const { name, description, privacy, tags, cover_image } = req.body;
+  let modifed_tags = false;
+
+  if (typeof tags !== 'undefined') {
+    modifed_tags = true;
+    await Community_Tag.destroy({ where: { community_id: communityId } });
+    const tagsToCreate = [];
+    const tag_arr = [];
+
+    for (const tag of tags) {
+      const existingTag = await Tag.findOne({ where: { tag_name: tag } });
+      if (!existingTag) {
+        tagsToCreate.push({ tag_name: tag });
+      } else {
+        tag_arr.push(existingTag);
+      }
+    }
+
+    await Tag.bulkCreate(tagsToCreate, {
+      ignoreDuplicates: true
+    });
+
+    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
+    tag_arr.push(...new_tag_arr);
+    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    const communityTagsToCreate = tag_arr_id.map(tagId => ({
+      community_id: communityId,
+      tag_id: tagId
+    }));
+
+    await Community_Tag.bulkCreate(communityTagsToCreate, {
+      ignoreDuplicates: true
+    }); 
+  }
+
+  const updatedCommunity = await Community.update(
+    {
+      name: name || existingCommunity.name,
+      description: description || existingCommunity.description,
+      privacy: privacy || existingCommunity.privacy,
+      cover_image: cover_image || existingCommunity.cover_image,
+    },
+    {
+      where: { community_id: communityId },
+    }
+  );
+
+  if (updatedCommunity[0] === 0 && !modifed_tags) { 
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.NOT_MODIFIED,
+      "No changes were made!"
+    );
+  }
+
+  return formatResponse(
+    res,
+    {
+      community_id: communityId,
+      name: name || existingCommunity.name,
+      description: description || existingCommunity.description,
+      privacy: privacy || existingCommunity.privacy,
+      tags: tags,
+      cover_image: cover_image || existingCommunity.cover_image,
+      member_count: existingCommunity.member_count,
+      rating: existingCommunity.rating,
+      contact_phone: existingCommunity.contact_phone,
+      contact_email: existingCommunity.contact_email
+    },
+    STATUS_CODE.SUCCESS,
+    "Community updated successfully!"
+  );
+};
+
+const deleteCommunity = async (req, res) => {
+  const communityId = req.params.community_id;
+  await Community.update(
+    { is_active: false },
+    {
+      where: { community_id: communityId },
+    }
+  );
+  return formatResponse(
+    res,
+    {},
+    STATUS_CODE.SUCCESS,
+    "Community deleted successfully!"
+  );
 };
 
 const getCommunityDetail = async (req, res) => {
   const communityId = req.params.community_id;
   const userId = req.user.user_id;
   const community = await Community.findOne({
-    where: { community_id: req.params.community_id },
+    where: { community_id: communityId },
     attributes: {
       exclude: ["owner"], // Exclude owner field to prevent sensitive information
     },
   });
-  if (userId) {
-    const user = await User.findOne({ where: { user_id: userId } });
-    if (user) {
-      const isJoined = await Member.findOne({
-        where: { community_id: communityId, user_id: userId },
-        attributes: ["is_joined"],
-      });
-      community.dataValues.is_joined = isJoined ? isJoined.is_joined : false;
-    }
-  }
-
-  if (!community)
+  
+  if(!community || !community.is_active) {
     return formatResponse(
       res,
       {},
       STATUS_CODE.NOT_FOUND,
       "Community not found!"
     );
+  }
+  
+  const isJoined = await Member.findOne({
+    where: { community_id: communityId, user_id: userId },
+    attributes: ["is_joined"],
+  });
+  community.dataValues.is_joined = isJoined ? isJoined.is_joined : false;
 
   return formatResponse(
     res,
@@ -298,4 +409,6 @@ module.exports = {
   leaveCommunity,
   getMemberProfile,
   updateMemberProfile,
+  updateCommunity,
+  deleteCommunity
 };

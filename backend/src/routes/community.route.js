@@ -9,22 +9,31 @@ const {
   leaveCommunity,
   getMemberProfile,
   updateMemberProfile,
+  updateCommunity,
+  deleteCommunity
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
 const chatRoute = require("./chat.route");
+const { verifyAdmin } = require("../middlewares/verify-admin");
 
 router.use(verifyToken);
 
-router.route("/").get(getCommunityList).post(createCommunity);
+router.route("/")
+  .get(getCommunityList)
+  .post(createCommunity);
 
-router.get("/:community_id", verifyMember, getCommunityDetail);
+router.route("/:community_id")
+  .get(verifyMember, getCommunityDetail)
+  .patch(verifyAdmin, updateCommunity)
+  .delete(verifyAdmin, deleteCommunity);
 
 router.get("/:community_id/members", verifyMember, getCommunityMembers);
 
 router.post("/:community_id/join", joinCommunity);
 
 router.post("/:community_id/leave", verifyMember, leaveCommunity);
+
 
 router
   .route("/:community_id/members/:member_id")
