@@ -15,17 +15,6 @@ const sequelize = new Sequelize(
   }
 );
 
-// const sequelize = new Sequelize(
-//   "scientist_community",// process.env.MYSQL_DATABASE,
-//   "root",//process.env.MYSQL_USER,
-//   "nhattin",//process.env.MYSQL_PASSWORD,
-//   {
-//     host: "mysql",//process.env.MYSQL_HOST,
-//     port: "3306",//process.env.MYSQL_PORT,
-//     dialect: "mysql",
-//   }
-// );
-
 // MongoDB setup
 const connectMongoDB = async () => {
   try {
