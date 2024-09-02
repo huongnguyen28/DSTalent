@@ -8,20 +8,31 @@ const Tag = db.tag;
 const Community_Tag = db.community_tag;
 
 const getCommunityList = async (req, res) => {
-  const communities = await Community.findAll({
-    attributes: ["community_id", "name", "owner"],
-    order: [["createdAt"]],
-  });
-  const owner_communities = communities.filter(
-    (community) => community.owner === req.user.user_id
-  );
-  const not_owner_communities = communities.filter(
-    (community) => community.owner !== req.user.user_id
-  );
-
-  const data = [...owner_communities, ...not_owner_communities];
-
-  return formatResponse(res, data, STATUS_CODE.SUCCESS, "Success!");
+  try {
+    const communities = await Community.findAll({
+      attributes: ["community_id", "name", "owner"],
+      order: [["createdAt"]],
+    });
+    const owner_communities = communities.filter(
+      (community) => community.owner === req.user.user_id
+    );
+    const not_owner_communities = communities.filter(
+      (community) => community.owner !== req.user.user_id
+    );
+  
+    const data = [...owner_communities, ...not_owner_communities];
+  
+    return formatResponse(res, data, STATUS_CODE.SUCCESS, "Success!");
+  }
+  catch (err) {
+    console.log(err.message);
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            err.message
+        );
+  }
 };
 
 const createCommunity = async (req, res) => {
