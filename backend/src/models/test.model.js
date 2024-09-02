@@ -7,13 +7,19 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         autoIncrement: true,
       },
-      question_file_path: {
-        type: DataTypes.STRING,
-        allowNull: true,
+      // question_file_path: {
+      //   type: DataTypes.STRING,
+      //   allowNull: true,
+      // },
+      // answer_file_path: {
+      //   type: DataTypes.STRING,
+      //   allowNull: true,
+      // },
+      question_file: {
+        type: DataTypes.BLOB('medium')
       },
-      answer_file_path: {
-        type: DataTypes.STRING,
-        allowNull: true,
+      answer_file: {
+        type: DataTypes.BLOB('medium')
       },
       status: {
         type: DataTypes.STRING,
@@ -27,10 +33,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
-      problem_phase: {
-        type: DataTypes.INTEGER,
-        defaultValue: 1,
-      },
+      // problem_phase: {
+      //   type: DataTypes.INTEGER,
+      //   defaultValue: 1,
+      // },
       duration: {
         type: DataTypes.INTEGER,
         defaultValue: 0,

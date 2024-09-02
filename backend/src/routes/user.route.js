@@ -27,13 +27,17 @@ const {
     createUpLevelRequest,
     getCurrentUpLevelRequestId,
     getCurrentLevel,
+    submitAnswer,
 } = require('../controllers/up_level.controller');
+const { verify } = require('jsonwebtoken');
 
 router.get('/me/communities/:community_id/current-level', verifyMember, getCurrentLevel);
 router.get('/me/communities/:community_id/up-level-phase', verifyMember, getUpLevelPhase);
 router.post('/me/communities/:community_id/up-level-request', verifyMember, createUpLevelRequest);
 router.get('/me/communities/:community_id/current-up-level-request-id', verifyMember, getCurrentUpLevelRequestId);
+router.post('/me/communities/:community_id/submit-answer', verifyMember, submitAnswer);
 
 // =====================================================
+
 
 module.exports = router;

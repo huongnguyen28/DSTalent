@@ -2,18 +2,29 @@ const { Sequelize, DataTypes } = require("sequelize");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-// Sequelize setup
+//Sequelize setup
 const sequelize = new Sequelize(
   process.env.DATABASE,
   process.env.USER_DB,
   process.env.PASSWORD_DB,
+
   {
     host: process.env.HOST_DB,
-    port: process.env.PORT_DB,
     dialect: "mysql",
     // operatorsAliases: false,
   }
 );
+
+// const sequelize = new Sequelize(
+//   "scientist_community",// process.env.MYSQL_DATABASE,
+//   "root",//process.env.MYSQL_USER,
+//   "nhattin",//process.env.MYSQL_PASSWORD,
+//   {
+//     host: "mysql",//process.env.MYSQL_HOST,
+//     port: "3306",//process.env.MYSQL_PORT,
+//     dialect: "mysql",
+//   }
+// );
 
 // MongoDB setup
 const connectMongoDB = async () => {

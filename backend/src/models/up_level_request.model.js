@@ -31,6 +31,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      num_judge_agreed: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
+      num_judge_completed: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
     },
     {
       tableName: "up_level_request",

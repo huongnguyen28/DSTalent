@@ -7,6 +7,7 @@ const Test = db.test;
 const User = db.user;
 
 const { formatResponse, STATUS_CODE } = require("../utils/services");
+const fs = require("fs");
 
 // Tín ================================================
 
@@ -122,15 +123,142 @@ const getTests = async (req, res) => {
 
         const testsData = await Promise.all(tests.map(async test => {
             const user = await User.findByPk(test.dataValues.created_by);
-            test.dataValues.created_by = user.full_name;
-            return test;
+            const { question_file, answer_file, ...others } = test.dataValues;
+            others.created_by = user.full_name;
+            return others;
         }));
 
+        const duration = testsData.reduce((sum, test) => sum + test.duration, 0);
+
+        const result = {
+            duration: duration,
+            tests: testsData,
+        }
         return formatResponse(
             res, 
-            testsData, 
+            result, 
             STATUS_CODE.SUCCESS, 
             "Get tests successfully!");
+    } catch (error) {
+        return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
+    }
+}
+
+const submitAnswer = async (req, res) => {
+    try {
+        const member = await Member.findOne({
+            where: {
+                user_id: req.user.user_id,
+                community_id: req.params.community_id
+            },
+        });
+
+        if (member.up_level_phase != 4) {
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot submit answer now!");
+        }
+
+        await Member.update({
+            up_level_phase: 5,
+        }, {
+            where: {
+                member_id: member.member_id,
+            }
+        });
+
+        return formatResponse(res, {up_level_phase: 5}, STATUS_CODE.SUCCESS, "Get up level request successfully!");
+    } catch (error) {
+        return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
+    }
+}
+
+const uploadAnswer = async (req, res) => {
+    try {
+        const file = req.file;
+
+        if (!file) {
+            return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
+        }
+
+        const fileData = fs.readFileSync(file.path);
+
+
+        await Test.update({
+            answer_file: fileData,
+        }, {
+            where: {
+                test_id: req.params.test_id,
+            }
+        });
+
+        fs.unlinkSync(file.path);
+
+        return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload answer successfully!");
+    } catch (error) {
+        return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
+    }
+}
+
+const downloadAnswer = async (req, res) => {
+    try {
+        const test = await Test.findByPk(req.params.test_id);
+
+        if (!test) {
+            return formatResponse(res, {}, STATUS_CODE.NOT_FOUND, "Test not found!");
+        }
+
+        const answer = test.answer_file;
+        const fileName = `answer_${test.test_id}.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+
+        res.send(answer);
+    } catch (error) {
+        return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
+    }
+}
+
+const uploadQuestion = async (req, res) => {
+    try {
+        const file = req.file;
+
+        if (!file) {
+            return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
+        }
+
+        const fileData = fs.readFileSync(file.path);
+
+        await Test.update({
+            question_file: fileData,
+        }, {
+            where: {
+                test_id: req.params.test_id,
+            }
+        });
+
+        fs.unlinkSync(file.path);
+
+        return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload question successfully!");
+    } catch (error) {
+        return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
+    }
+}
+
+const downloadQuestion = async (req, res) => {
+    try {
+        const test = await Test.findByPk(req.params.test_id);
+
+        if (!test) {
+            return formatResponse(res, {}, STATUS_CODE.NOT_FOUND, "Test not found!");
+        }
+
+        const question = test.question_file;
+        const fileName = `question_${test.test_id}.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+
+        res.send(question);
     } catch (error) {
         return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
     }
@@ -142,6 +270,11 @@ module.exports = {
     getCurrentUpLevelRequestId,
     getCurrentLevel,
     getTests,
+    uploadAnswer,
+    submitAnswer,
+    downloadAnswer,
+    uploadQuestion,
+    downloadQuestion,
 }
 
 // ===================================================
