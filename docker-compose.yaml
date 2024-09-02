@@ -12,7 +12,7 @@ services:
         condition: service_healthy
     environment:
       - DB_HOST=mysqldb
-      - DB_PORT=3306
+      - DB_PORT=${MYSQL_PORT}
       - DB_NAME=${MYSQL_DATABASE}
       - DB_USERNAME=root
       - DB_PASSWORD=${MYSQL_PASSWORD}
@@ -24,7 +24,8 @@ services:
       - 3306:3306
     environment:
       - MYSQL_DATABASE=scientist_community
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_ROOT_HOST=%
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
