@@ -6,7 +6,7 @@ const {loginUser,
     oauthGoogle,
     verifyEmail, 
     getVerifyCode, 
-    resetPassword,
+    resetPassword,      
     registerUser
 } = require("../controllers/auth.controller");
 

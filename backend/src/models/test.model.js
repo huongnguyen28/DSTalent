@@ -9,15 +9,15 @@ module.exports = (sequelize, DataTypes) => {
       },
       question_file_path: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       answer_file_path: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       status: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       score: {
         type: DataTypes.INTEGER,
@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       problem_phase: {
         type: DataTypes.INTEGER,
-        defaultValue: 0,
+        defaultValue: 1,
       },
       duration: {
         type: DataTypes.INTEGER,

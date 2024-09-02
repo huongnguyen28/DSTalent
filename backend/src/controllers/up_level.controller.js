@@ -4,6 +4,7 @@ const db = require("../configs/db");
 const Member = db.member;
 const UpLevelRequest = db.up_level_request;
 const Test = db.test;
+const User = db.user;
 
 const { formatResponse, STATUS_CODE } = require("../utils/services");
 
@@ -119,9 +120,15 @@ const getTests = async (req, res) => {
             },
         });
 
+        const testsData = await Promise.all(tests.map(async test => {
+            const user = await User.findByPk(test.dataValues.created_by);
+            test.dataValues.created_by = user.full_name;
+            return test;
+        }));
+
         return formatResponse(
             res, 
-            tests, 
+            testsData, 
             STATUS_CODE.SUCCESS, 
             "Get tests successfully!");
     } catch (error) {
