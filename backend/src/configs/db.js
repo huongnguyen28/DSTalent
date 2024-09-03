@@ -2,11 +2,12 @@ const { Sequelize, DataTypes } = require("sequelize");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-// Sequelize setup
+//Sequelize setup
 const sequelize = new Sequelize(
   process.env.DATABASE,
   process.env.USER_DB,
   process.env.PASSWORD_DB,
+
   {
     host: process.env.HOST_DB,
     dialect: "mysql",
