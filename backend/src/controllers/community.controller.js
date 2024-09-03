@@ -1,11 +1,14 @@
+const e = require("express");
 const db = require("../configs/db");
 const Community = db.community;
+const Document = db.document
 const User = db.user;
 const Member = db.member;
 const { STATUS_CODE, formatResponse } = require("../utils/services");
 const { Op, Sequelize } = require("sequelize");
 const Tag = db.tag;
 const Community_Tag = db.community_tag;
+const Document_Tag = db.document_tag;
 
 const getCommunityList = async (req, res) => {
   const communities = await Community.findAll({
@@ -95,7 +98,7 @@ const createCommunity = async (req, res) => {
   } catch(error) {
     return formatResponse(
       res,
-      {},
+      error,
       STATUS_CODE.INTERNAL_SERVER_ERROR,
       "Failed to create community!"
     );
@@ -103,245 +106,272 @@ const createCommunity = async (req, res) => {
 };
 
 const updateCommunity = async (req, res) => {
-  const communityId = req.params.community_id;
+  try {
+    const communityId = req.params.community_id;
 
-  const existingCommunity = await Community.findOne(
-    {
-      where: { community_id: communityId }
-    }
-  );
-
-  const { name, description, privacy, tags, cover_image } = req.body;
-  let modifed_tags = false;
-
-  if (typeof tags !== 'undefined') {
-    modifed_tags = true;
-    await Community_Tag.destroy({ where: { community_id: communityId } });
-    const tagsToCreate = [];
-    const tag_arr = [];
-
-    for (const tag of tags) {
-      const existingTag = await Tag.findOne({ where: { tag_name: tag } });
-      if (!existingTag) {
-        tagsToCreate.push({ tag_name: tag });
-      } else {
-        tag_arr.push(existingTag);
+    const existingCommunity = await Community.findOne(
+      {
+        where: { community_id: communityId }
       }
+    );
+
+    const { name, description, privacy, tags, cover_image } = req.body;
+    let modifed_tags = false;
+
+    if (typeof tags !== 'undefined') {
+      modifed_tags = true;
+      await Community_Tag.destroy({ where: { community_id: communityId } });
+      const tagsToCreate = [];
+      const tag_arr = [];
+
+      for (const tag of tags) {
+        const existingTag = await Tag.findOne({ where: { tag_name: tag } });
+        if (!existingTag) {
+          tagsToCreate.push({ tag_name: tag });
+        } else {
+          tag_arr.push(existingTag);
+        }
+      }
+
+      await Tag.bulkCreate(tagsToCreate, {
+        ignoreDuplicates: true
+      });
+
+      const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
+      tag_arr.push(...new_tag_arr);
+      const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+      const communityTagsToCreate = tag_arr_id.map(tagId => ({
+        community_id: communityId,
+        tag_id: tagId
+      }));
+
+      await Community_Tag.bulkCreate(communityTagsToCreate, {
+        ignoreDuplicates: true
+      }); 
     }
 
-    await Tag.bulkCreate(tagsToCreate, {
-      ignoreDuplicates: true
-    });
+    const updatedCommunity = await Community.update(
+      {
+        name: name || existingCommunity.name,
+        description: description || existingCommunity.description,
+        privacy: privacy || existingCommunity.privacy,
+        cover_image: cover_image || existingCommunity.cover_image,
+      },
+      {
+        where: { community_id: communityId },
+      }
+    );
 
-    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
-    tag_arr.push(...new_tag_arr);
-    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
-    const communityTagsToCreate = tag_arr_id.map(tagId => ({
-      community_id: communityId,
-      tag_id: tagId
-    }));
-
-    await Community_Tag.bulkCreate(communityTagsToCreate, {
-      ignoreDuplicates: true
-    }); 
-  }
-
-  const updatedCommunity = await Community.update(
-    {
-      name: name || existingCommunity.name,
-      description: description || existingCommunity.description,
-      privacy: privacy || existingCommunity.privacy,
-      cover_image: cover_image || existingCommunity.cover_image,
-    },
-    {
-      where: { community_id: communityId },
+    if (updatedCommunity[0] === 0 && !modifed_tags) { 
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_MODIFIED,
+        "No changes were made!"
+      );
     }
-  );
 
-  if (updatedCommunity[0] === 0 && !modifed_tags) { 
     return formatResponse(
       res,
-      {},
-      STATUS_CODE.NOT_MODIFIED,
-      "No changes were made!"
+      {
+        community_id: communityId,
+        name: name || existingCommunity.name,
+        description: description || existingCommunity.description,
+        privacy: privacy || existingCommunity.privacy,
+        tags: tags,
+        cover_image: cover_image || existingCommunity.cover_image,
+        member_count: existingCommunity.member_count,
+        rating: existingCommunity.rating,
+        contact_phone: existingCommunity.contact_phone,
+        contact_email: existingCommunity.contact_email
+      },
+      STATUS_CODE.SUCCESS,
+      "Community updated successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to update community!"
     );
   }
-
-  return formatResponse(
-    res,
-    {
-      community_id: communityId,
-      name: name || existingCommunity.name,
-      description: description || existingCommunity.description,
-      privacy: privacy || existingCommunity.privacy,
-      tags: tags,
-      cover_image: cover_image || existingCommunity.cover_image,
-      member_count: existingCommunity.member_count,
-      rating: existingCommunity.rating,
-      contact_phone: existingCommunity.contact_phone,
-      contact_email: existingCommunity.contact_email
-    },
-    STATUS_CODE.SUCCESS,
-    "Community updated successfully!"
-  );
 };
 
 const deleteCommunity = async (req, res) => {
-  const communityId = req.params.community_id;
-  await Community.update(
-    { is_active: false },
-    {
-      where: { community_id: communityId },
-    }
-  );
-  return formatResponse(
-    res,
-    {},
-    STATUS_CODE.SUCCESS,
-    "Community deleted successfully!"
-  );
-};
-
-const searchCommunity = async (req, res) => {
-  const userID = req.user.user_id;  
-  const { query, page = 1, limit = 20, sort, is_default } = req.query;
-
-  const tags = Array.isArray(req.query.tags) ? req.query.tags : req.query.tags ? req.query.tags.split(',') : [];
-
-  const offset = (Number(page) - 1) * limit;
-  const attributes = {
-    include: [
-      [Sequelize.literal(`owner = ${userID}`), 'is_owner'],
-      [Sequelize.literal(`EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)`), 'is_joined'],
-    ]
-  };
-  const include = [
-    {
-      model: Member,
-      required: false,
-      where : {user_id: userID},
-      attributes: []
-    }
-  ]
-
-  let communities;
-
-  if(is_default === '1') {
-    communities = await Community.findAndCountAll({
-      where: {
-        [Op.or]: [ 
-          {privacy: 'public'},
-          {owner: userID},
-        ]
-      },
-      offset,
-      limit: Number(limit),
-      include,
-      attributes,
-      order: [
-        [Sequelize.literal(`CASE WHEN owner = ${userID} THEN 0 ELSE 1 END`), 'ASC'],
-        [Sequelize.literal(`CASE WHEN owner = ${userID} THEN privacy ELSE NULL END`), 'DESC'],
-        [`rating`, 'DESC']
-      ]
-    });
-  } else {
-    let wheres = {}
-    let order = [];
-    let having;
-    let group;
-    let include2 = [];
-    if(query) {
-      wheres.name = {
-        [Op.like]: `%${query}%`
-      }; 
-    }
-    if(sort) {
-      order = [sort.split(',')];
-    }
-    if(tags.length > 0) {
-      let tagsCount = tags.length;
-      include2.push({
-        model: Community_Tag,
-        required: true,
-        attributes: [],
-        include: [ {
-            model: Tag,
-            required: true,
-            where: {
-              tag_name: {
-                [Op.in]: tags
-              } 
-            },
-            attributes: []
-          }
-        ]
-      });
-      group = ['community.community_id'];
-      having = Sequelize.where(
-        Sequelize.fn('COUNT', Sequelize.fn('DISTINCT', Sequelize.col('community_tags->tag.tag_name'))),
-        '=',
-        tagsCount
-      )
-    }
-    communities = await Community.findAll({
-      include: include2,
-      group,
-      having,
-    });
-
-    const communityIds = communities.map(community => community.community_id);
-    
-    communities = await Community.findAndCountAll({
-      where: {
-        [Op.and]: [
-          {
-            community_id: {
-              [Op.in]: communityIds
-            }
-          },
-          wheres,
-          {
-            [Op.or]: [ 
-              {privacy: 'public'},
-              {owner: userID},
-            ]
-          }
-        ]
-      },
-      offset,
-      limit: Number(limit),
-      include,
-      attributes,
-      order
-    });
-    
-  }
-
-  const totalPage = Math.ceil(communities.count / limit);
-  if (page > totalPage) {
+  try {
+    const communityId = req.params.community_id;
+    await Community.update(
+      { is_active: false },
+      {
+        where: { community_id: communityId },
+      }
+    );
     return formatResponse(
       res,
       {},
-      STATUS_CODE.NOT_FOUND,
-      "Page not found!"
+      STATUS_CODE.SUCCESS,
+      "Community deleted successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to delete community!"
     );
   }
-  const pagination = {
-    "currentPage": Number(page),
-    "pageSize": Number(limit),
-    "totalPage": totalPage,  
-    "hasNext": page < totalPage,
-  };
-  const data = {
-    communities: communities.rows,
-    pagination
-  };
-  return formatResponse(
-    res,
-    data,
-    STATUS_CODE.SUCCESS,
-    "Get community list successfully!"
-  );
+};
+
+const searchCommunity = async (req, res) => {
+  try {
+    const userID = req.user.user_id;  
+    const { query, page = 1, limit = 20, sort, is_default } = req.query;
+
+    const tags = Array.isArray(req.query.tags) ? req.query.tags : req.query.tags ? req.query.tags.split(',') : [];
+
+    const offset = (Number(page) - 1) * limit;
+    const attributes = {
+      include: [
+        [Sequelize.literal(`owner = ${userID}`), 'is_owner'],
+        [Sequelize.literal(`EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)`), 'is_joined'],
+      ]
+    };
+    const include = [
+      {
+        model: Member,
+        required: false,
+        where : {user_id: userID},
+        attributes: []
+      }
+    ]
+
+    let communities;
+
+    if(is_default === '1') {
+      communities = await Community.findAndCountAll({
+        where: {
+          [Op.or]: [ 
+            {privacy: 'public'},
+            {owner: userID},
+          ]
+        },
+        offset,
+        limit: Number(limit),
+        include,
+        attributes,
+        order: [
+          [Sequelize.literal(`CASE WHEN owner = ${userID} THEN 0 ELSE 1 END`), 'ASC'],
+          [Sequelize.literal(`CASE WHEN owner = ${userID} THEN privacy ELSE NULL END`), 'DESC'],
+          [`rating`, 'DESC']
+        ]
+      });
+    } else {
+      let wheres = {}
+      let order = [];
+      let having;
+      let group;
+      let include2 = [];
+      if(query) {
+        wheres.name = {
+          [Op.like]: `%${query}%`
+        }; 
+      }
+      if(sort) {
+        order = [sort.split(',')];
+      }
+      if(tags.length > 0) {
+        let tagsCount = tags.length;
+        include2.push({
+          model: Community_Tag,
+          required: true,
+          attributes: [],
+          include: [ {
+              model: Tag,
+              required: true,
+              where: {
+                tag_name: {
+                  [Op.in]: tags
+                } 
+              },
+              attributes: []
+            }
+          ]
+        });
+        group = ['community.community_id'];
+        having = Sequelize.where(
+          Sequelize.fn('COUNT', Sequelize.fn('DISTINCT', Sequelize.col('community_tags->tag.tag_name'))),
+          '=',
+          tagsCount
+        )
+      }
+      communities = await Community.findAll({
+        include: include2,
+        group,
+        having,
+      });
+
+      const communityIds = communities.map(community => community.community_id);
+      
+      communities = await Community.findAndCountAll({
+        where: {
+          [Op.and]: [
+            {
+              community_id: {
+                [Op.in]: communityIds
+              }
+            },
+            wheres,
+            {
+              [Op.or]: [ 
+                {privacy: 'public'},
+                {owner: userID},
+              ]
+            }
+          ]
+        },
+        offset,
+        limit: Number(limit),
+        include,
+        attributes,
+        order
+      });
+      
+    }
+
+    const totalPage = Math.ceil(communities.count / limit);
+    if (page > totalPage) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Page not found!"
+      );
+    }
+    const pagination = {
+      "currentPage": Number(page),
+      "pageSize": Number(limit),
+      "totalPage": totalPage,  
+      "hasNext": page < totalPage,
+    };
+    const data = {
+      communities: communities.rows,
+      pagination
+    };
+    return formatResponse(
+      res,
+      data,
+      STATUS_CODE.SUCCESS,
+      "Get community list successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to search community!"
+    );
+  }
 };
 
 const getCommunityDetail = async (req, res) => {
@@ -542,6 +572,80 @@ const updateMemberProfile = async (req, res) => {
   );
 };
 
+const uploadDocument = async (req, res) => {
+  try {
+    const {document_name, community_id, price, access_days, full_content_path, preview_content_path, description, tags} = req.body;
+    const uploaded_by = req.user.user_id;
+    const communityID = req.params.community_id;
+
+    const tagsToCreate = [];
+    const tag_arr = [];
+
+    for (const tag of tags) {
+      const existingTag = await Tag.findOne({ where: { tag_name: tag } });
+      if (!existingTag) {
+        tagsToCreate.push({ tag_name: tag });
+      } else {
+        tag_arr.push(existingTag);
+      }
+    }
+
+    await Tag.bulkCreate(tagsToCreate, {
+      ignoreDuplicates: true
+    });
+    
+    const newDocument = await Document.create({
+      document_name,
+      community_id: communityID,
+      price,
+      access_days,
+      full_content_path,
+      preview_content_path,
+      description,
+      uploaded_by
+    });
+
+    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
+    tag_arr.push(...new_tag_arr);
+    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    const documentTagsToCreate = tag_arr_id.map(tagId => ({
+      document_id: newDocument.document_id,
+      tag_id: tagId
+    }));
+
+    await Document_Tag.bulkCreate(documentTagsToCreate, {
+      ignoreDuplicates: true
+    });
+
+    return formatResponse(
+      res,
+      {
+        document_id: newDocument.document_id,
+        document_name: newDocument.document_name,
+        community_id: newDocument.community_id,
+        price: newDocument.price,
+        rent_days: newDocument.access_days,
+        tags,
+        full_file_url: newDocument.full_content_path,
+        preview_file_url: newDocument.preview_content_path,
+        description: newDocument.description,
+        uploaded_by: newDocument.uploaded_by,
+        createdAt: newDocument.createAt,
+        active: newDocument.active
+      },
+      STATUS_CODE.CREATED,
+      "Document uploaded successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to upload document!"
+    );
+  }
+};
+
 module.exports = {
   getCommunityList,
   createCommunity,
@@ -553,5 +657,6 @@ module.exports = {
   updateMemberProfile,
   updateCommunity,
   deleteCommunity,
-  searchCommunity
+  searchCommunity,
+  uploadDocument
 };
