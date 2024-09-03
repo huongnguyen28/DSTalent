@@ -9,9 +9,10 @@ const sequelize = new Sequelize(
   process.env.PASSWORD_DB,
 
   {
-    host: "dstalent-database-1",
+    host: process.env.HOST_DB,
     port: process.env.PORT_DB,
     dialect: "mysql",
+    logging: false,
     // operatorsAliases: false,
   }
 );

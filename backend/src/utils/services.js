@@ -94,6 +94,17 @@ const formatResponse = (
   });
 };
 
+const SOCKET_EVENT = {
+  CONNECT: "connection",
+  DISCONNECT: "disconnect",
+  SEND_MESSAGE: "send_message",
+  RECEIVE_MESSAGE: "receive_message",
+  JOIN_ROOM: "join_room",
+  LEAVE_ROOM: "leave_room",
+  TYPING: "typing",
+  STOP_TYPING: "stop_typing",
+};
+
 module.exports = {
   generateToken,
   generageVerifyCode,
@@ -102,4 +113,5 @@ module.exports = {
   readAndTransformImageToBase64,
   STATUS_CODE,
   formatResponse,
+  SOCKET_EVENT,
 };
