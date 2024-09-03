@@ -3,7 +3,7 @@ const Community = db.community;
 const User = db.user;
 const Member = db.member;
 const { STATUS_CODE, formatResponse } = require("../utils/services");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const Tag = db.tag;
 const Community_Tag = db.community_tag;
 
@@ -199,6 +199,148 @@ const deleteCommunity = async (req, res) => {
     {},
     STATUS_CODE.SUCCESS,
     "Community deleted successfully!"
+  );
+};
+
+const searchCommunity = async (req, res) => {
+  const userID = req.user.user_id;  
+  const { query, page = 1, limit = 20, sort, is_default } = req.query;
+
+  const tags = Array.isArray(req.query.tags) ? req.query.tags : req.query.tags ? req.query.tags.split(',') : [];
+
+  const offset = (Number(page) - 1) * limit;
+  const attributes = {
+    include: [
+      [Sequelize.literal(`owner = ${userID}`), 'is_owner'],
+      [Sequelize.literal(`EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)`), 'is_joined'],
+    ]
+  };
+  const include = [
+    {
+      model: Member,
+      required: false,
+      where : {user_id: userID},
+      attributes: []
+    }
+  ]
+
+  let communities;
+
+  if(is_default === '1') {
+    communities = await Community.findAndCountAll({
+      where: {
+        [Op.or]: [ 
+          {privacy: 'public'},
+          {owner: userID},
+        ]
+      },
+      offset,
+      limit: Number(limit),
+      include,
+      attributes,
+      order: [
+        [Sequelize.literal(`CASE WHEN owner = ${userID} THEN 0 ELSE 1 END`), 'ASC'],
+        [Sequelize.literal(`CASE WHEN owner = ${userID} THEN privacy ELSE NULL END`), 'DESC'],
+        [`rating`, 'DESC']
+      ]
+    });
+  } else {
+    let wheres = {}
+    let order = [];
+    let having;
+    let group;
+    let include2 = [];
+    if(query) {
+      wheres.name = {
+        [Op.like]: `%${query}%`
+      }; 
+    }
+    if(sort) {
+      order = [sort.split(',')];
+    }
+    if(tags.length > 0) {
+      let tagsCount = tags.length;
+      include2.push({
+        model: Community_Tag,
+        required: true,
+        attributes: [],
+        include: [ {
+            model: Tag,
+            required: true,
+            where: {
+              tag_name: {
+                [Op.in]: tags
+              } 
+            },
+            attributes: []
+          }
+        ]
+      });
+      group = ['community.community_id'];
+      having = Sequelize.where(
+        Sequelize.fn('COUNT', Sequelize.fn('DISTINCT', Sequelize.col('community_tags->tag.tag_name'))),
+        '=',
+        tagsCount
+      )
+    }
+    communities = await Community.findAll({
+      include: include2,
+      group,
+      having,
+    });
+
+    const communityIds = communities.map(community => community.community_id);
+    
+    communities = await Community.findAndCountAll({
+      where: {
+        [Op.and]: [
+          {
+            community_id: {
+              [Op.in]: communityIds
+            }
+          },
+          wheres,
+          {
+            [Op.or]: [ 
+              {privacy: 'public'},
+              {owner: userID},
+            ]
+          }
+        ]
+      },
+      offset,
+      limit: Number(limit),
+      include,
+      attributes,
+      order
+    });
+    
+  }
+
+  const totalPage = Math.ceil(communities.count / limit);
+  if (page > totalPage) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.NOT_FOUND,
+      "Page not found!"
+    );
+  }
+  const pagination = {
+    "currentPage": Number(page),
+    "pageSize": Number(limit),
+    "totalPage": totalPage,  
+    "hasNext": page < totalPage,
+  };
+  const data = {
+    communities: communities.rows,
+    pagination
+  };
+  return formatResponse(
+    res,
+    data,
+    STATUS_CODE.SUCCESS,
+    "Get community list successfully!"
   );
 };
 
@@ -410,5 +552,6 @@ module.exports = {
   getMemberProfile,
   updateMemberProfile,
   updateCommunity,
-  deleteCommunity
+  deleteCommunity,
+  searchCommunity
 };

@@ -94,12 +94,12 @@ db.community.belongsTo(db.user, { foreignKey: "owner" });
 db.user.hasMany(db.community, { foreignKey: "owner" });
 
 // Community_tags community_id refers to communities.id
-db.community_tag.belongsTo(db.community, { foreignKey: "community_id" });
 db.community.hasMany(db.community_tag, { foreignKey: "community_id" });
+db.community_tag.belongsTo(db.community, { foreignKey: "community_id" });
 
 // Community_tags tag_id refers to tags.tag_id
-// db.community_tag.belongsTo(db.tag, { foreignKey: "tag_id" });
 db.tag.hasMany(db.community_tag, { as: "tag_foreign", foreignKey: "tag_id" });
+db.community_tag.belongsTo(db.tag, { foreignKey: "tag_id" });
 
 db.tag.hasMany(db.post_tag, { foreignKey: "tag_id" });
 db.post_tag.belongsTo(db.tag, { foreignKey: "tag_id" });
