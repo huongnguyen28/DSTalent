@@ -4,6 +4,7 @@ const Community = db.community;
 const Document = db.document
 const User = db.user;
 const Member = db.member;
+const Document_Access = db.document_access;
 const { STATUS_CODE, formatResponse } = require("../utils/services");
 const { Op, Sequelize } = require("sequelize");
 const Tag = db.tag;
@@ -574,7 +575,7 @@ const updateMemberProfile = async (req, res) => {
 
 const uploadDocument = async (req, res) => {
   try {
-    const {document_name, community_id, price, access_days, full_content_path, preview_content_path, description, tags} = req.body;
+    const {document_name, price, access_days, full_content_path, preview_content_path, description, tags} = req.body;
     const uploaded_by = req.user.user_id;
     const communityID = req.params.community_id;
 
@@ -616,6 +617,15 @@ const uploadDocument = async (req, res) => {
     await Document_Tag.bulkCreate(documentTagsToCreate, {
       ignoreDuplicates: true
     });
+
+    await Document_Access.create({
+      document_id: newDocument.document_id,
+      user_id: uploaded_by,
+      document_access_level: 2,
+      purchase_date: newDocument.createAt,
+      price_paid: -1,
+      expired_date: new Date("9999-12-31T23:59:59.999Z")
+    });    
 
     return formatResponse(
       res,
