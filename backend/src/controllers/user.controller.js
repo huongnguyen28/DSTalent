@@ -3,7 +3,9 @@ require("dotenv").config();
 const db = require("../configs/db");
 const User = db.user;
 const Wallet = db.wallet;
-
+const Member = db.member;
+const UpLevelRequest = db.up_level_request;
+const UserWallet = db.user_wallet;
 
 const { formatFilePath, readAndTransformImageToBase64, formatResponse, STATUS_CODE } = require("../utils/services");
 
@@ -61,8 +63,9 @@ const getUser = async (req, res) => {
             );
 
         const { password, refresh_token, verify_code, ...others } = user.dataValues;
-
-        others.avatar = await readAndTransformImageToBase64(user.avatar);
+        
+        if (user.avatar)
+            others.avatar = await readAndTransformImageToBase64(user.avatar);
 
         return formatResponse(
             res,

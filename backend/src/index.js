@@ -7,14 +7,14 @@ const router = require("./routes/index.route");
 
 app.use(express.json());
 app.use(cors({
-    origin: 'http://localhost:6969',
+    origin: 'http://localhost:5173',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true 
 }));
 
 app.use(cookieParser());
 app.use(express.json());
-app.use(express.urlencoded({extended: false}))
+app.use(express.urlencoded({extended: false}));
 
 app.use("/api", router);
 

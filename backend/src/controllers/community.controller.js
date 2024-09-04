@@ -22,7 +22,7 @@ const getCommunityList = async (req, res) => {
   
     const data = [...owner_communities, ...not_owner_communities];
   
-    return formatResponse(res, data, STATUS_CODE.SUCCESS, "Success!");
+    return formatResponse(res, {community_list: data}, STATUS_CODE.SUCCESS, "Success!");
   }
   catch (err) {
     console.log(err.message);
