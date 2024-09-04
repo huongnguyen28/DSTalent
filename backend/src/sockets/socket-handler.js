@@ -13,36 +13,33 @@ module.exports = (io) => {
   io.use(socketAuth);
 
   io.on(SOCKET_EVENT.CONNECT, (socket) => {
-    console.log("We have a new connection!!!");
-
-    socket.on(SOCKET_EVENT.STOP_TYPING, (object) => {
-      console.log(typeof object);
-      console.log("User has stopped typing: ", object);
-    });
-
     socket.on(SOCKET_EVENT.JOIN_ROOM, async (data, callback) => {
       if (!callback) {
         callback = () => {};
       }
       const { chat_room_id: chatRoomId } = data;
-      console.log("User is joining room: ", chatRoomId);
       const chatMember = await ChatMember.findOne({
         chat_room_id: chatRoomId,
         user_id: socket.user.user_id,
       });
       if (!chatMember || chatMember.is_joined === false) {
-        console.log("User is not a member of this chat room!");
+        socket.emit(SOCKET_EVENT.SERVER_MESSAGE, {
+          message_type: SERVER_MESSAGE_TYPE.ERROR,
+          message: "User is not a member of this chat room!",
+        });
         return callback("User is not a member of this chat room!");
       }
       socket.join(chatRoomId);
       socket.chatRoomId = chatRoomId;
-      console.log("User has joined room: ", chatRoomId);
 
       const chatRoom = await ChatRoom.findById(chatRoomId).select(
         "-chat_messages"
       );
       if (!chatRoom) {
-        console.log("Chat room not found!");
+        socket.emit(SOCKET_EVENT.SERVER_MESSAGE, {
+          message_type: SERVER_MESSAGE_TYPE.ERROR,
+          message: "Chat room not found!",
+        });
         return callback("Chat room not found!");
       }
       const chatMembers = await ChatMember.find({
@@ -77,8 +74,7 @@ module.exports = (io) => {
     });
 
     socket.on(SOCKET_EVENT.SEND_MESSAGE, async (data) => {
-      // const { chat_room_id: chatRoomId, message } = data;
-      const { content } = data;
+      const { message } = data;
       const chatRoomId = socket.chatRoomId;
       const userId = socket.user.user_id;
       const chatRoom = await ChatRoom.findById(chatRoomId);
@@ -91,16 +87,14 @@ module.exports = (io) => {
       }
       const newChatMessage = {
         created_by: userId,
-        content: content,
+        message: message,
         created_at: new Date(),
       };
       chatRoom.chat_messages.push(newChatMessage);
       chatRoom.save(); // no need to use await here because we don't need to wait for the result
-      console.log("User is sending message: ", message);
       socket.broadcast.to(chatRoomId).emit(SOCKET_EVENT.RECEIVE_MESSAGE, {
         chat_room_id: chatRoomId,
-        message,
-        user: socket.user,
+        chat_message: newChatMessage,
       });
     });
 
@@ -118,14 +112,7 @@ module.exports = (io) => {
         return;
       }
       chatRoom.room_name = roomName;
-      chatRoom.save(); // no need to use await here because we don't need to wait for the result
-      // const formattedChatRoom = {
-      //   chat_room_id: chatRoom._id,
-      //   room_name: roomName,
-      //   community_id: chatRoom.community_id,
-      //   created_at: chatRoom.createdAt,
-      //   updated_at: chatRoom.updatedAt,
-      // };
+      await chatRoom.save();
       io.to(chatRoomId).emit(SOCKET_EVENT.SERVER_MESSAGE, {
         chat_room_id: chatRoomId,
         message_type: SERVER_MESSAGE_TYPE.CHAT_ROOM_NAME_UPDATED,
@@ -158,23 +145,21 @@ module.exports = (io) => {
         chatMember.is_joined = true;
         await chatMember.save();
       }
-      const chatMembers = await ChatMember.find({
-        chat_room_id: chatRoomId,
-        is_joined: true,
-      });
-      const members = chatMembers.map((member) => member.user_id);
-      const responseMembers = await User.findAll({
-        attributes: ["user_id", "full_name", "avatar"],
+      const newMemberInfo = await User.findOne({
+        attributes: ["full_name", "avatar"],
         where: {
-          user_id: {
-            [Op.in]: members, // Use the Op.in operator to match user_id with members array
-          },
+          user_id: chatMember.user_id,
         },
       });
       io.to(chatRoomId).emit(SOCKET_EVENT.SERVER_MESSAGE, {
         chat_room_id: chatRoomId,
         message_type: SERVER_MESSAGE_TYPE.CHAT_MEMBERS_UPDATED,
-        members: responseMembers,
+        message: {
+          user_id: userId,
+          full_name: newMemberInfo.full_name,
+          avatar: newMemberInfo.avatar,
+          added_by: socket.user.user_id,
+        },
       });
     });
 
@@ -201,23 +186,13 @@ module.exports = (io) => {
       }
       chatMember.is_joined = false;
       await chatMember.save();
-      const chatMembers = await ChatMember.find({
-        chat_room_id: chatRoomId,
-        is_joined: true,
-      });
-      const members = chatMembers.map((member) => member.user_id);
-      const responseMembers = await User.findAll({
-        attributes: ["user_id", "full_name", "avatar"],
-        where: {
-          user_id: {
-            [Op.in]: members, // Use the Op.in operator to match user_id with members array
-          },
-        },
-      });
       io.to(chatRoomId).emit(SOCKET_EVENT.SERVER_MESSAGE, {
         chat_room_id: chatRoomId,
         message_type: SERVER_MESSAGE_TYPE.CHAT_MEMBERS_UPDATED,
-        members: responseMembers,
+        message: {
+          user_id: userId,
+          removed_by: socket.user.user_id,
+        },
       });
     });
 
