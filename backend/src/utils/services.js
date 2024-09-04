@@ -105,6 +105,7 @@ const SOCKET_EVENT = {
   SERVER_MESSAGE: "server_message",
   JOIN_ROOM: "join_room",
   LEAVE_ROOM: "leave_room",
+  ERROR: "error",
 };
 
 const SERVER_MESSAGE_TYPE = {

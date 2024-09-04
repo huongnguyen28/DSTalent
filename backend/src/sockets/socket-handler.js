@@ -1,5 +1,5 @@
 const { SOCKET_EVENT, SERVER_MESSAGE_TYPE } = require("../utils/services");
-const socketAuth = require("./socket-auth");
+const { socketAuthentication } = require("./socket-auth");
 const db = require("../configs/db");
 const ChatRoom = db.chat_room;
 const ChatMember = db.chat_member;
@@ -10,9 +10,41 @@ const { Op } = require("sequelize");
 
 module.exports = (io) => {
   // use socket authenication middleware
-  io.use(socketAuth);
+  io.use(socketAuthentication);
 
   io.on(SOCKET_EVENT.CONNECT, (socket) => {
+    // use socket authorization middleware
+    socket.use(async ([event, ...agrs], next) => {
+      if (
+        event === SOCKET_EVENT.CONNECT ||
+        event === SOCKET_EVENT.DISCONNECT ||
+        event === SOCKET_EVENT.JOIN_ROOM
+      ) {
+        return next();
+      }
+      // console.log(agrs);
+      const chatRoomId = socket.chatRoomId;
+      const userId = socket.user?.user_id;
+      // console.log(socket);
+      // console.log(chatRoomId, userId);
+      if (!chatRoomId) {
+        return next(new Error("User is not in a chat room!"));
+      }
+      if (!userId) {
+        return next(
+          new Error("User is not authorized to perform this action!")
+        );
+      }
+      const chatMember = await ChatMember.findOne({
+        chat_room_id: chatRoomId,
+        user_id: userId,
+      });
+      if (!chatMember || chatMember.is_joined === false) {
+        return next(new Error("User is not a member of this chat room!"));
+      }
+      return next();
+    });
+
     socket.on(SOCKET_EVENT.JOIN_ROOM, async (data, callback) => {
       if (!callback) {
         callback = () => {};
@@ -130,25 +162,38 @@ module.exports = (io) => {
         });
         return;
       }
-      const chatMember = await ChatMember.findOne({
+      const newChatMember = await ChatMember.findOne({
         chat_room_id: chatRoomId,
         user_id: userId,
       });
-      if (chatMember) {
-        if (chatMember.is_joined === true) {
+      if (newChatMember) {
+        if (newChatMember.is_joined === true) {
           socket.emit(SOCKET_EVENT.SERVER_MESSAGE, {
             message_type: SERVER_MESSAGE_TYPE.ERROR,
             message: "User is already a member of this chat room!",
           });
           return;
         }
-        chatMember.is_joined = true;
-        await chatMember.save();
+        newChatMember.is_joined = true;
+        await newChatMember.save();
+      }
+      const memberInCommunity = await Member.findOne({
+        where: {
+          community_id: chatRoom.community_id,
+          user_id: userId,
+        },
+      });
+      if (!memberInCommunity) {
+        socket.emit(SOCKET_EVENT.SERVER_MESSAGE, {
+          message_type: SERVER_MESSAGE_TYPE.ERROR,
+          message: "User is not a member of this community!",
+        });
+        return;
       }
       const newMemberInfo = await User.findOne({
         attributes: ["full_name", "avatar"],
         where: {
-          user_id: chatMember.user_id,
+          user_id: userId,
         },
       });
       io.to(chatRoomId).emit(SOCKET_EVENT.SERVER_MESSAGE, {
@@ -194,10 +239,30 @@ module.exports = (io) => {
           removed_by: socket.user.user_id,
         },
       });
+
+      // Find the socket associated with the removed member
+      const socketToRemove = [...io.sockets.sockets.values()].find(
+        (s) => s.user.user_id === userId
+      );
+
+      if (socketToRemove) {
+        // Make the socket leave the chat room
+        socketToRemove.leave(chatRoomId);
+        socketToRemove.chatRoomId = null;
+      }
     });
 
     socket.on(SOCKET_EVENT.DISCONNECT, () => {
       console.log("User had left!!!");
+    });
+
+    socket.on(SOCKET_EVENT.ERROR, (error) => {
+      // console.log(error);
+      // console.log(typeof error);
+      socket.emit(SOCKET_EVENT.SERVER_MESSAGE, {
+        message_type: SERVER_MESSAGE_TYPE.ERROR,
+        message: error.message,
+      });
     });
   });
 };
