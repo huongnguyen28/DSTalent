@@ -11,8 +11,8 @@ const {
   generateVerifyCode,
   generateRandomPassword,
   generateToken,
-  formatResponse, 
-  STATUS_CODE
+  formatResponse,
+  STATUS_CODE,
 } = require("../utils/services");
 
 const registerUser = async (req, res) => {
@@ -32,19 +32,19 @@ const registerUser = async (req, res) => {
         STATUS_CODE.BAD_REQUEST,
         "User already exists!"
       );
-  
+
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(req.body.password, salt);
-  
+
     const verifyCode = generateVerifyCode();
-  
+
     const newUser = {
       email: req.body.email,
       full_name: req.body.full_name,
       password: hashedPassword,
       verify_code: verifyCode,
     };
-  
+
     await User.create(newUser)
       .then((user) => {
         sendEmail(user.email, verifyCode);
@@ -63,8 +63,7 @@ const registerUser = async (req, res) => {
           err.message
         );
       });
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -96,7 +95,7 @@ const verifyEmail = async (req, res) => {
         STATUS_CODE.BAD_REQUEST,
         "Email not found!"
       );
-    };
+    }
 
     if (user.is_verify)
       return formatResponse(
@@ -105,7 +104,7 @@ const verifyEmail = async (req, res) => {
         STATUS_CODE.BAD_REQUEST,
         "This email is verified!"
       );
-    
+
     if (user.verify_code !== verifyCode)
       return formatResponse(
         res,
@@ -114,17 +113,17 @@ const verifyEmail = async (req, res) => {
         "Wrong verify code!"
       );
 
+    user.is_verify = true;
     user.verify_code = null;
     await user.save();
-  
+
     return formatResponse(
       res,
       {},
       STATUS_CODE.CREATED,
       "Verify email successfully!"
     );
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -147,28 +146,17 @@ const getVerifyCode = async (req, res) => {
 
     const user = await User.findOne({ where: { email: req.body.email } });
     if (!user)
-      return formatResponse(
-        res,
-        {},
-        STATUS_CODE.NOT_FOUND,
-        "Email not found!"
-      );
+      return formatResponse(res, {}, STATUS_CODE.NOT_FOUND, "Email not found!");
 
     const verifyCode = generateVerifyCode();
-  
+
     user.verify_code = verifyCode;
     await user.save();
-  
+
     sendEmail(user.email, verifyCode);
-  
-    return formatResponse(
-      res,
-      {},
-      STATUS_CODE.SUCCESS,
-      "Let's verify!"
-    );
-  }
-  catch (err) {
+
+    return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Let's verify!");
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -200,8 +188,8 @@ const supResetPassword = async (req, res) => {
         STATUS_CODE.BAD_REQUEST,
         "Email not found!"
       );
-    };
-    
+    }
+
     if (user.verify_code !== verifyCode)
       return formatResponse(
         res,
@@ -216,8 +204,7 @@ const supResetPassword = async (req, res) => {
       STATUS_CODE.CREATED,
       "Verify code successfully!"
     );
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -249,7 +236,7 @@ const resetPassword = async (req, res) => {
         STATUS_CODE.BAD_REQUEST,
         "Email not found!"
       );
-    };
+    }
 
     if (user.verify_code !== verifyCode) {
       return formatResponse(
@@ -259,10 +246,10 @@ const resetPassword = async (req, res) => {
         "Wrong verify code. Can not change password!"
       );
     }
-  
+
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(req.body.password, salt);
-  
+
     user.password = hashedPassword;
     user.verify_code = null;
     await user.save();
@@ -273,8 +260,7 @@ const resetPassword = async (req, res) => {
       STATUS_CODE.SUCCESS,
       "Change password successfully!"
     );
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -302,7 +288,7 @@ const loginUser = async (req, res) => {
         STATUS_CODE.NOT_FOUND,
         "User does not exists!"
       );
-  
+
     if (!user.is_verify)
       return formatResponse(
         res,
@@ -310,9 +296,9 @@ const loginUser = async (req, res) => {
         STATUS_CODE.BAD_REQUEST,
         "You must verify your email!"
       );
-  
+
     const match = await bcrypt.compare(req.body.password, user.password);
-  
+
     if (!match)
       return formatResponse(
         res,
@@ -320,7 +306,7 @@ const loginUser = async (req, res) => {
         STATUS_CODE.BAD_REQUEST,
         "Incorrect password!"
       );
-  
+
     const accessToken = generateToken(
       user,
       process.env.JWT_ACCESS_KEY,
@@ -331,7 +317,7 @@ const loginUser = async (req, res) => {
       process.env.JWT_REFRESH_KEY,
       process.env.REFRESH_TIME
     );
-  
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       path: "/api/auth/refresh",
@@ -343,26 +329,25 @@ const loginUser = async (req, res) => {
       path: "/api/auth/logout",
       sameSite: "strict",
     });
-  
+
     const { password, refresh_token, verify_code, ...others } = user.dataValues;
-  
+
     user.refresh_token = refreshToken;
     await user.save();
-  
+
     if (user.avatar)
       others.avatar = await readAndTransformImageToBase64(user.avatar);
-  
+
     return formatResponse(
       res,
       {
         user: others,
-        access_token: accessToken
+        access_token: accessToken,
       },
       STATUS_CODE.SUCCESS,
       "Logged in successfully!"
     );
-  }
-  catch(err) {
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -375,7 +360,9 @@ const loginUser = async (req, res) => {
 
 const logoutUser = async (req, res) => {
   try {
-    const user = await User.findOne({where: {refresh_token: req.cookies.tokenLogout}});
+    const user = await User.findOne({
+      where: { refresh_token: req.cookies.tokenLogout },
+    });
     if (user) {
       user.refresh_token = null;
       await user.save();
@@ -390,8 +377,7 @@ const logoutUser = async (req, res) => {
       STATUS_CODE.SUCCESS,
       "Logged out successfully!"
     );
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -406,12 +392,7 @@ const requestRefreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken)
-      return formatResponse(
-        res,
-        {},
-        STATUS_CODE.UNAUTHORIZED,
-        "Unauthorized!"
-      );
+      return formatResponse(res, {}, STATUS_CODE.UNAUTHORIZED, "Unauthorized!");
 
     jwt.verify(refreshToken, process.env.JWT_REFRESH_KEY, async (err, user) => {
       if (err) {
@@ -467,14 +448,13 @@ const requestRefreshToken = async (req, res) => {
       return formatResponse(
         res,
         {
-          access_token: newAccessToken
+          access_token: newAccessToken,
         },
         STATUS_CODE.SUCCESS,
         "Refresh token successfully!"
       );
     });
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -541,8 +521,7 @@ const oauthGoogle = async (req, res) => {
       STATUS_CODE.SUCCESS,
       "Logged in successfully!"
     );
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err.message);
     return formatResponse(
       res,
@@ -562,5 +541,5 @@ module.exports = {
   verifyEmail,
   getVerifyCode,
   resetPassword,
-  supResetPassword
+  supResetPassword,
 };
