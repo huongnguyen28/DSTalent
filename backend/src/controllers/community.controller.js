@@ -252,9 +252,16 @@ const searchCommunity = async (req, res) => {
     if(is_default === '1') {
       communities = await Community.findAndCountAll({
         where: {
-          [Op.or]: [ 
-            {privacy: 'public'},
-            {owner: userID},
+          [Op.and]: [
+            {
+              [Op.or]: [ 
+                {privacy: 'public'},
+                {owner: userID},
+              ]
+            },
+            {
+              is_active: true
+            }
           ]
         },
         offset,
@@ -324,9 +331,16 @@ const searchCommunity = async (req, res) => {
             },
             wheres,
             {
-              [Op.or]: [ 
-                {privacy: 'public'},
-                {owner: userID},
+              [Op.and]: [
+                {
+                  [Op.or]: [ 
+                    {privacy: 'public'},
+                    {owner: userID},
+                  ]
+                },
+                {
+                  is_active: true
+                }
               ]
             }
           ]
