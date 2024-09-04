@@ -10,7 +10,8 @@ const {
   getMemberProfile,
   updateMemberProfile,
   updateCommunity,
-  deleteCommunity
+  deleteCommunity,
+  searchCommunity
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
@@ -22,6 +23,8 @@ router.use(verifyToken);
 router.route("/")
   .get(getCommunityList)
   .post(createCommunity);
+
+router.get("/search", searchCommunity);
 
 router.route("/:community_id")
   .get(verifyMember, getCommunityDetail)

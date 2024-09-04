@@ -8,7 +8,7 @@ const User = db.user;
 
 const {
   readAndTransformImageToBase64,
-  generageVerifyCode,
+  generateVerifyCode,
   generateRandomPassword,
   generateToken,
   formatResponse, 
@@ -17,19 +17,14 @@ const {
 
 const registerUser = async (req, res) => {
   try {
-    if (
-      !req.body.username ||
-      !req.body.email ||
-      !req.body.full_name ||
-      !req.body.password
-    )
+    if (!req.body.email || !req.body.full_name || !req.body.password)
       return formatResponse(
         res,
         {},
         STATUS_CODE.BAD_REQUEST,
-        "All fields are required"
+        "All fields are required!"
       );
-    const user = await User.findOne({ where: { username: req.body.username } });
+    const user = await User.findOne({ where: { email: req.body.email } });
     if (user)
       return formatResponse(
         res,
@@ -41,11 +36,10 @@ const registerUser = async (req, res) => {
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(req.body.password, salt);
   
-    const verifyCode = generageVerifyCode(req.body.username);
+    const verifyCode = generateVerifyCode();
   
     const newUser = {
       email: req.body.email,
-      username: req.body.username,
       full_name: req.body.full_name,
       password: hashedPassword,
       verify_code: verifyCode,
@@ -83,44 +77,51 @@ const registerUser = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
   try {
-    if (!req.body.verify_code)
+    if (!req.body.verify_code || !req.body.email)
       return formatResponse(
         res,
         {},
         STATUS_CODE.BAD_REQUEST,
-        "All fields are required"
+        "All fields are required!"
       );
 
     const verifyCode = req.body.verify_code;
-    const username = verifyCode.slice(0, verifyCode.length - 7);
-    const user = await User.findOne({ where: { username: username } });
-    if (user.is_verify)
-      if (!req.body.verify_code)
-        return formatResponse(
-          res,
-          {},
-          STATUS_CODE.BAD_REQUEST,
-          "This email is verified!"
-        );
-    if (!user || user.verify_code !== verifyCode) {
+
+    const user = await User.findOne({ where: { email: req.body.email } });
+
+    if (!user) {
       return formatResponse(
         res,
         {},
         STATUS_CODE.BAD_REQUEST,
-        "Wrong verify code.!"
+        "Email not found!"
       );
-    }
-  
-    user.is_verify = true;
+    };
+
+    if (user.is_verify)
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "This email is verified!"
+      );
+    
+    if (user.verify_code !== verifyCode)
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "Wrong verify code!"
+      );
+
     user.verify_code = null;
     await user.save();
   
-    const { password, refresh_token, verify_code, ...others } = user.dataValues;
     return formatResponse(
       res,
-      others,
+      {},
       STATUS_CODE.CREATED,
-      "Created account!"
+      "Verify email successfully!"
     );
   }
   catch (err) {
@@ -141,7 +142,7 @@ const getVerifyCode = async (req, res) => {
         res,
         {},
         STATUS_CODE.BAD_REQUEST,
-        "All fields are required"
+        "All fields are required!"
       );
 
     const user = await User.findOne({ where: { email: req.body.email } });
@@ -152,7 +153,8 @@ const getVerifyCode = async (req, res) => {
         STATUS_CODE.NOT_FOUND,
         "Email not found!"
       );
-    const verifyCode = generageVerifyCode(user.username);
+
+    const verifyCode = generateVerifyCode();
   
     user.verify_code = verifyCode;
     await user.save();
@@ -177,19 +179,77 @@ const getVerifyCode = async (req, res) => {
   }
 };
 
-const resetPassword = async (req, res) => {
+const supResetPassword = async (req, res) => {
   try {
-    if (!req.body.password || !req.body.verify_code)
+    if (!req.body.verify_code || !req.body.email)
       return formatResponse(
         res,
         {},
         STATUS_CODE.BAD_REQUEST,
-        "All fields are required"
+        "All fields are required!"
       );
 
     const verifyCode = req.body.verify_code;
-    const username = verifyCode.slice(0, verifyCode.length - 7);
-    const user = await User.findOne({ where: { username: username } });
+
+    const user = await User.findOne({ where: { email: req.body.email } });
+
+    if (!user) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "Email not found!"
+      );
+    };
+    
+    if (user.verify_code !== verifyCode)
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "Wrong verify code!"
+      );
+
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.CREATED,
+      "Verify code successfully!"
+    );
+  }
+  catch (err) {
+    console.log(err.message);
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      err.message
+    );
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    if (!req.body.password || !req.body.verify_code || !req.body.email)
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "All fields are required!"
+      );
+
+    const verifyCode = req.body.verify_code;
+
+    const user = await User.findOne({ where: { email: req.body.email } });
+
+    if (!user) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "Email not found!"
+      );
+    };
 
     if (user.verify_code !== verifyCode) {
       return formatResponse(
@@ -227,14 +287,14 @@ const resetPassword = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    if (!req.body.username || !req.body.password)
+    if (!req.body.email || !req.body.password)
       return formatResponse(
         res,
         {},
         STATUS_CODE.BAD_REQUEST,
         "All fields are required"
       );
-    const user = await User.findOne({ where: { username: req.body.username } });
+    const user = await User.findOne({ where: { email: req.body.email } });
     if (!user)
       return formatResponse(
         res,
@@ -247,7 +307,7 @@ const loginUser = async (req, res) => {
       return formatResponse(
         res,
         {},
-        STATUS_CODE.UNAUTHORIZED,
+        STATUS_CODE.BAD_REQUEST,
         "You must verify your email!"
       );
   
@@ -277,6 +337,12 @@ const loginUser = async (req, res) => {
       path: "/api/auth/refresh",
       sameSite: "strict",
     });
+
+    res.cookie("tokenLogout", refreshToken, {
+      httpOnly: true,
+      path: "/api/auth/logout",
+      sameSite: "strict",
+    });
   
     const { password, refresh_token, verify_code, ...others } = user.dataValues;
   
@@ -290,7 +356,7 @@ const loginUser = async (req, res) => {
       res,
       {
         user: others,
-        accessToken: accessToken
+        access_token: accessToken
       },
       STATUS_CODE.SUCCESS,
       "Logged in successfully!"
@@ -309,7 +375,14 @@ const loginUser = async (req, res) => {
 
 const logoutUser = async (req, res) => {
   try {
+    const user = await User.findOne({where: {refresh_token: req.cookies.tokenLogout}});
+    if (user) {
+      user.refresh_token = null;
+      await user.save();
+    }
+
     res.clearCookie("refreshToken");
+    res.clearCookie("tokenLogout");
 
     return formatResponse(
       res,
@@ -343,6 +416,7 @@ const requestRefreshToken = async (req, res) => {
     jwt.verify(refreshToken, process.env.JWT_REFRESH_KEY, async (err, user) => {
       if (err) {
         res.clearCookie("refreshToken");
+        res.clearCookie("tokenLogout");
         return formatResponse(
           res,
           {},
@@ -355,6 +429,7 @@ const requestRefreshToken = async (req, res) => {
 
       if (!userDB || refreshToken !== userDB.dataValues.refresh_token) {
         res.clearCookie("refreshToken");
+        res.clearCookie("tokenLogout");
         return formatResponse(
           res,
           {},
@@ -377,6 +452,12 @@ const requestRefreshToken = async (req, res) => {
       res.cookie("refreshToken", newRefreshToken, {
         httpOnly: true,
         path: "/api/auth/refresh",
+        sameSite: "strict",
+      });
+
+      res.cookie("tokenLogout", newRefreshToken, {
+        httpOnly: true,
+        path: "/api/auth/logout",
         sameSite: "strict",
       });
 
@@ -409,7 +490,6 @@ const oauthGoogle = async (req, res) => {
     let user = await User.findOne({ where: { email: req.body.email } });
     if (!user) {
       const newUser = {
-        username: req.body.email,
         email: req.body.email,
         full_name: req.body.full_name,
         password: generateRandomPassword(20),
@@ -438,7 +518,7 @@ const oauthGoogle = async (req, res) => {
       sameSite: "strict",
     });
 
-    res.cookie("refreshLogout", refreshToken, {
+    res.cookie("tokenLogout", refreshToken, {
       httpOnly: true,
       path: "/api/auth/logout",
       sameSite: "strict",
@@ -482,4 +562,5 @@ module.exports = {
   verifyEmail,
   getVerifyCode,
   resetPassword,
+  supResetPassword
 };
