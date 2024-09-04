@@ -23,8 +23,5 @@ router.get("/oauth/google", oauthGoogle);
 router.get("/tests", async (req, res) => {
     return res.json({message: "Hello from auth route"});
 });
-router.get("/tests", async (req, res) => {
-    return res.json({message: "Hello from auth route"});
-});
 
 module.exports = router;

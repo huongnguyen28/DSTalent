@@ -179,7 +179,7 @@ const getVerifyCode = async (req, res) => {
   }
 };
 
-const supResetPassword = async () => {
+const supResetPassword = async (req, res) => {
   try {
     if (!req.body.verify_code || !req.body.email)
       return formatResponse(
