@@ -305,7 +305,7 @@ const getChatMessages = async (req, res) => {
 const sendChatMessage = async (req, res) => {
   const chatRoomId = req.params.chat_room_id;
   const userId = req.user.user_id;
-  const content = req.body.content;
+  const message = req.body.message;
   const chatRoom = await ChatRoom.findById(chatRoomId);
   if (!chatRoom) {
     return formatResponse(
@@ -317,7 +317,7 @@ const sendChatMessage = async (req, res) => {
   }
   const newChatMessage = {
     created_by: userId,
-    content: content,
+    message: message,
     created_at: new Date(),
   };
   chatRoom.chat_messages.push(newChatMessage);

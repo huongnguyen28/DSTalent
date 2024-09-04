@@ -1,26 +1,65 @@
-const express = require('express');
-const app = express();
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
+const http = require("http");
+const express = require("express");
+const socketio = require("socket.io");
+const { instrument } = require("@socket.io/admin-ui");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const socketHandler = require("./sockets/socket-handler");
 require("dotenv").config();
-const router = require("./routes/index.route");
 
-app.use(express.json());
-app.use(cors({
-    origin: 'http://localhost:5173',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true 
-}));
-
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({extended: false}));
-
-app.use("/api", router);
-
-const PORT = process.env.PORT || 8000;
-
-app.listen(PORT, (req, res) => {
-    console.log(`Server running on port: ${PORT}`);
+const app = express();
+const httpServer = http.createServer(app);
+const io = socketio(httpServer, {
+  cors: {
+    origin: [
+      "https://admin.socket.io/",
+      "http://localhost:5173",
+      "http://localhost:5001",
+      "https://socket-test-client.netlify.app/",
+    ],
+    // origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true,
+    transports: ["websocket"], // Force WebSocket transport
+  },
 });
 
+// socket.io admin ui
+instrument(io, {
+  auth: false,
+});
+
+// socket handler
+socketHandler(io);
+
+// router
+const router = require("./routes/index.route");
+
+// middlewares
+app.use(express.json());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5001",
+      "https://socket-test-client.netlify.app/",
+      "https://admin.socket.io/",
+    ],
+    // origin: "*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+  })
+);
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// routes
+app.use("/api", router);
+
+// server
+const PORT = process.env.PORT || 8000;
+
+httpServer.listen(PORT, (req, res) => {
+  console.log(`Server running on port: ${PORT}`);
+});

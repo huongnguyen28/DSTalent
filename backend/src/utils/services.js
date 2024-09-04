@@ -1,6 +1,11 @@
 const jwt = require("jsonwebtoken");
 const appRootPath = require("app-root-path");
 const fs = require("fs").promises;
+const {
+  STATUS_CODE,
+  SOCKET_EVENT,
+  SERVER_MESSAGE_TYPE,
+} = require("./constants");
 
 const formatFilePath = (fileName) => {
   const path = appRootPath + "\\public\\upload\\" + fileName;
@@ -14,7 +19,7 @@ const generateToken = (user, secret_key, expire) => {
     {
       user_id: user.user_id,
       email: user.email,
-      full_name: user.full_name
+      full_name: user.full_name,
     },
     secret_key,
     { expiresIn: expire }
@@ -27,7 +32,6 @@ const generateVerifyCode = () => {
   const num = Math.floor(Math.random() * (max - min + 1)) + min;
   return num.toString();
 };
-
 
 function generateRandomPassword(length) {
   const lowercase = "abcdefghijklmnopqrstuvwxyz";
@@ -58,30 +62,6 @@ const readAndTransformImageToBase64 = async (imagePath) => {
   }
 };
 
-const STATUS_CODE = {
-  SUCCESS: 200,
-  CREATED: 201,
-  ACCEPTED: 202,
-  NO_CONTENT: 204,
-  PARTIAL_CONTENT: 206,
-  MOVED_PERMANENTLY: 301,
-  FOUND: 302,
-  NOT_MODIFIED: 304,
-  TEMPORARY_REDIRECT: 307,
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  METHOD_NOT_ALLOWED: 405,
-  CONFLICT: 409,
-  UNPROCESSABLE_ENTITY: 422,
-  TOO_MANY_REQUESTS: 429,
-  INTERNAL_SERVER_ERROR: 500,
-  BAD_GATEWAY: 502,
-  SERVICE_UNAVAILABLE: 503,
-  GATEWAY_TIMEOUT: 504,
-};
-
 const formatResponse = (
   res,
   data,
@@ -101,6 +81,8 @@ module.exports = {
   generateRandomPassword,
   formatFilePath,
   readAndTransformImageToBase64,
-  STATUS_CODE,
   formatResponse,
+  STATUS_CODE,
+  SOCKET_EVENT,
+  SERVER_MESSAGE_TYPE,
 };

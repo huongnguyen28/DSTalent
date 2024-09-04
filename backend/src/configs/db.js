@@ -10,7 +10,9 @@ const sequelize = new Sequelize(
 
   {
     host: process.env.HOST_DB,
+    port: process.env.PORT_DB,
     dialect: "mysql",
+    logging: false,
     // operatorsAliases: false,
   }
 );
@@ -88,7 +90,6 @@ db.posts = require("../models/post.model.js")(mongoose);
 
 db.chat_room = require("../models/chat_room.model.js")(mongoose);
 db.chat_member = require("../models/chat_member.model.js")(mongoose);
-
 
 // Communities owner refers to users.id
 db.community.belongsTo(db.user, { foreignKey: "owner" });
@@ -192,7 +193,6 @@ db.user.hasMany(db.basic_test_submit, { foreignKey: "user_id" });
 // Basic_test_submit basic_test_id refers to basic_test.id
 db.basic_test_submit.belongsTo(db.basic_test, { foreignKey: "basic_test_id" });
 db.basic_test.hasMany(db.basic_test_submit, { foreignKey: "basic_test_id" });
-
 
 // Sync MySQL models
 db.sequelize.sync({ force: false }).then(() => {
