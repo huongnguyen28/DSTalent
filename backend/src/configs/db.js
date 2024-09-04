@@ -2,15 +2,14 @@ const { Sequelize, DataTypes } = require("sequelize");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-// Sequelize setup
 const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USERNAME,
-  process.env.DB_PASSWORD,
+  process.env.DATABASE,
+  process.env.USER_DB,
+  process.env.PASSWORD_DB,
+
   {
-    host: process.env.DB_HOST,
+    host: process.env.HOST_DB,
     dialect: "mysql",
-    port: process.env.DB_PORT
     // operatorsAliases: false,
   }
 );
@@ -95,12 +94,12 @@ db.community.belongsTo(db.user, { foreignKey: "owner" });
 db.user.hasMany(db.community, { foreignKey: "owner" });
 
 // Community_tags community_id refers to communities.id
-db.community_tag.belongsTo(db.community, { foreignKey: "community_id" });
 db.community.hasMany(db.community_tag, { foreignKey: "community_id" });
+db.community_tag.belongsTo(db.community, { foreignKey: "community_id" });
 
 // Community_tags tag_id refers to tags.tag_id
-// db.community_tag.belongsTo(db.tag, { foreignKey: "tag_id" });
 db.tag.hasMany(db.community_tag, { as: "tag_foreign", foreignKey: "tag_id" });
+db.community_tag.belongsTo(db.tag, { foreignKey: "tag_id" });
 
 db.tag.hasMany(db.post_tag, { foreignKey: "tag_id" });
 db.post_tag.belongsTo(db.tag, { foreignKey: "tag_id" });

@@ -13,15 +13,15 @@ const generateToken = (user, secret_key, expire) => {
   return jwt.sign(
     {
       user_id: user.user_id,
-      username: user.username,
-      full_name: user.full_name,
+      email: user.email,
+      full_name: user.full_name
     },
     secret_key,
     { expiresIn: expire }
   );
 };
 
-const generageVerifyCode = () => {
+const generateVerifyCode = () => {
   const min = Math.pow(10, 6 - 1);
   const max = Math.pow(10, 6) - 1;
   const num = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -97,7 +97,7 @@ const formatResponse = (
 
 module.exports = {
   generateToken,
-  generageVerifyCode,
+  generateVerifyCode,
   generateRandomPassword,
   formatFilePath,
   readAndTransformImageToBase64,
