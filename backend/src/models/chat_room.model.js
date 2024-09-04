@@ -27,7 +27,7 @@ module.exports = (mongoose) => {
             type: Number, // user_id
             required: true,
           },
-          content: {
+          message: {
             type: String,
             required: true,
           },

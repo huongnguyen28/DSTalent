@@ -99,10 +99,19 @@ const SOCKET_EVENT = {
   DISCONNECT: "disconnect",
   SEND_MESSAGE: "send_message",
   RECEIVE_MESSAGE: "receive_message",
+  ADD_CHAT_MEMBER: "add_chat_member",
+  REMOVE_CHAT_MEMBER: "remove_chat_member",
+  UPDATE_CHAT_ROOM: "update_chat_room",
+  SERVER_MESSAGE: "server_message",
   JOIN_ROOM: "join_room",
   LEAVE_ROOM: "leave_room",
-  TYPING: "typing",
-  STOP_TYPING: "stop_typing",
+};
+
+const SERVER_MESSAGE_TYPE = {
+  CHAT_ROOM_DETAILS: "chat_room_details",
+  CHAT_ROOM_NAME_UPDATED: "chat_room_name_updated",
+  CHAT_MEMBERS_UPDATED: "chat_members_updated",
+  ERROR: "error",
 };
 
 module.exports = {
@@ -114,4 +123,5 @@ module.exports = {
   STATUS_CODE,
   formatResponse,
   SOCKET_EVENT,
+  SERVER_MESSAGE_TYPE,
 };

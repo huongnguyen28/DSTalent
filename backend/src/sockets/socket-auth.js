@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
 
 const socketAuth = (socket, next) => {
-  const token = socket.handshake.auth.token;
+  const token = socket.handshake.headers.token;
+  // console.log(token);
   if (!token) {
     return next(new Error("You are not authenticated!"));
   }
@@ -16,3 +17,5 @@ const socketAuth = (socket, next) => {
     next();
   });
 };
+
+module.exports = socketAuth;
