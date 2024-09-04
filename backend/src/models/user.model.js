@@ -30,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
       day_of_birth: {
         type: DataTypes.DATE,
       },
-      decription: {
+      description: {
         type: DataTypes.TEXT,
       },
       refresh_token: {

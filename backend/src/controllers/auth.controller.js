@@ -92,8 +92,8 @@ const verifyEmail = async (req, res) => {
       );
 
     const verifyCode = req.body.verify_code;
-    const username = verifyCode.slice(0, verifyCode.length - 7);
-    const user = await User.findOne({ where: { username: username } });
+
+    const user = await User.findOne({ where: { email: req.body.email } });
     if (user.is_verify)
       if (!req.body.verify_code)
         return formatResponse(
@@ -188,8 +188,8 @@ const resetPassword = async (req, res) => {
       );
 
     const verifyCode = req.body.verify_code;
-    const username = verifyCode.slice(0, verifyCode.length - 7);
-    const user = await User.findOne({ where: { username: username } });
+
+    const user = await User.findOne({ where: { email: req.body.email } });
 
     if (user.verify_code !== verifyCode) {
       return formatResponse(
@@ -290,7 +290,7 @@ const loginUser = async (req, res) => {
       res,
       {
         user: others,
-        accessToken: accessToken
+        access_token: accessToken
       },
       STATUS_CODE.SUCCESS,
       "Logged in successfully!"

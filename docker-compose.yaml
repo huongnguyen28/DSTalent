@@ -1,30 +1,33 @@
 # version: '3.7'
 services:
   backend:
-    image: tachithanhdanh/backend:test
+    image: kiettna/dstalent-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: backend_container
     ports:
       - 8080:8080
     depends_on:
-      database:
+      mysql:
         condition: service_healthy
     environment:
-      - DB_HOST=mysqldb
-      - DB_PORT=3306
+      - DB_HOST=mysql_container
+      - DB_PORT=${MYSQL_PORT}
       - DB_NAME=${MYSQL_DATABASE}
       - DB_USERNAME=root
       - DB_PASSWORD=${MYSQL_PASSWORD}
     networks:
       - nodejs-mysql-network
-  database:
+  mysql:
     image: mysql:8.0.33
+    container_name: mysql_container
     ports:
-      - 3306:3306
+      - 3307:3306
     environment:
       - MYSQL_DATABASE=scientist_community
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_ROOT_HOST=%
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -34,8 +37,19 @@ services:
       retries: 10
       interval: 3s
       timeout: 30s
+  mongodb:
+    image: mongo:latest
+    restart: always
+    container_name: mongodb_container
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
 volumes:
   mysql-data:
+  mongo-data:
+
 networks:
   nodejs-mysql-network:
     name: nodejs-mysql-network

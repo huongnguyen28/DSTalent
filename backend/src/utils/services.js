@@ -21,12 +21,13 @@ const generateToken = (user, secret_key, expire) => {
   );
 };
 
-const generageVerifyCode = (username) => {
+const generageVerifyCode = () => {
   const min = Math.pow(10, 6 - 1);
   const max = Math.pow(10, 6) - 1;
   const num = Math.floor(Math.random() * (max - min + 1)) + min;
-  return username + "-" + num.toString();
+  return num.toString();
 };
+
 
 function generateRandomPassword(length) {
   const lowercase = "abcdefghijklmnopqrstuvwxyz";
