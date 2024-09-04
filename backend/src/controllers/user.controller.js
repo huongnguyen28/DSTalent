@@ -3,8 +3,9 @@ require("dotenv").config();
 const db = require("../configs/db");
 const User = db.user;
 const Wallet = db.wallet;
+const Member = db.member;
+const UpLevelRequest = db.up_level_request;
 const UserWallet = db.user_wallet;
-
 
 const { formatFilePath, readAndTransformImageToBase64, formatResponse, STATUS_CODE } = require("../utils/services");
 
