@@ -1,11 +1,13 @@
 const db = require("../configs/db");
 const mongoose = require('mongoose');
+const { STATUS_CODE, formatResponse } = require("../utils/services");
 const Post = db.posts;
 const Tag = db.tag;
 const PostTag = db.post_tag;
 
 const getPosts = async (req, res) => {
-    const { page = 1, search_query, tags, creator_id, community_id } = req.query;
+    const { page = 1, search_query, tags, creator_id } = req.query;
+    const { community_id } = req.params;
     const LIMIT = 8;
     const startIndex = (Number(page) - 1) * LIMIT;
 
@@ -14,10 +16,11 @@ const getPosts = async (req, res) => {
 
         // Ensure community_id is provided
         if (!community_id) {
-            return res.status(400).json({
-                status: 400,
-                message: "Community ID is required"
-            });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.BAD_REQUEST
+            )
         }
 
         // Adding community_id to the query
@@ -106,15 +109,13 @@ const createPost = async (req, res) => {
     try {
         const { tags, caption, attachments } = req.body;
 
-        // tam thoi req.community_id = 1 tai vi chua co phan join group :))
-        req.community_id = 1;
+        const {  community_id } = req.params;
         
         // Tạo post mới với Mongoose
         const newPost = new Post({
             caption,
             attachments,
-            // đang chờ Ta Chi Thanh Danh gan gia tri cho req.community_id 
-            community_id: req.community_id,
+            community_id: community_id,
             creator_name: req.user.full_name,
             creator_id: req.user.user_id,
             // createdAt: new Date().toISOString(),

@@ -11,24 +11,25 @@ const {
     deleteComment,
     deletePost} = require("../controllers/post.controller");
 const {verifyToken} = require("../middlewares/verify-token");
+const { verifyMember } = require("../middlewares/verify-member");
 
 router.use(verifyToken);
 
-router.route("/")
+router.route("/:community_id/posts", verifyMember)
     .get(getPosts)
     .post(createPost);
 
-router.route("/:post_id")
+router.route("/:community_id/posts/:post_id", verifyMember)
     .get(getPost)
     .patch(updatePost)
     .delete(deletePost);
 
-router.post("/:post_id/comment", commentPost);
+router.post("/:community_id/posts/:post_id/comments",verifyMember, commentPost);
 
-router.route("/:post_id/comment/:comment_id")
+router.route("/:community_id/posts/:post_id/comments/:comment_id", verifyMember)
     .patch(updateComment)
     .delete(deleteComment);
 
-router.patch("/:post_id/like", likePost);
+router.patch("/:community_id/posts/:post_id/likes", verifyMember, likePost);
 
 module.exports = router;

@@ -186,6 +186,9 @@ db.wallet.hasMany(db.user_wallet, { foreignKey: "wallet_id" });
 db.basic_test.belongsTo(db.community, { foreignKey: "community_id" });
 db.community.hasMany(db.basic_test, { foreignKey: "community_id" });
 
+// db.basic_test.belongsTo(db.user, { foreignKey: "created_by" });
+// db.user.hasMany(db.basic_test, { foreignKey: "created_by" });
+
 // Basic_test_submit user_id refers to users.id
 db.basic_test_submit.belongsTo(db.user, { foreignKey: "user_id" });
 db.user.hasMany(db.basic_test_submit, { foreignKey: "user_id" });
