@@ -1,7 +1,7 @@
 const db = require("../configs/db");
 const mongoose = require('mongoose');
 const { STATUS_CODE, formatResponse } = require("../utils/services");
-const Post = db.posts;
+const Post = db.post;
 const Tag = db.tag;
 const PostTag = db.post_tag;
 
@@ -64,14 +64,13 @@ const getPosts = async (req, res) => {
                 query._id = { $in: postIdsWithTags };
             } else {
                 // If no posts found with the given tags, return an empty result
-                return res.status(200).json({
-                    data: [],
-                    currentPage: Number(page),
-                    numberOfPages: 0,
-                    numberOfPostsPerPage: LIMIT,
-                    status: 200,
-                    message: "No posts found with the given tags."
-                });
+                return formatResponse(
+                    res,
+                    [],
+                    STATUS_CODE.SUCCESS,
+                    // "No posts found with the given tags."
+                    error.message
+                );
             }
         }
 
@@ -83,21 +82,28 @@ const getPosts = async (req, res) => {
             .skip(startIndex);
 
         // Sending response with fetched posts
-        return res.status(200).json({
-            data: feedPosts,
-            currentPage: Number(page),
-            numberOfPages: Math.ceil(totalPosts / LIMIT),
-            numberOfPostsPerPage: LIMIT,
-            status: 200,
-            message: "Success!"
-        });
+        return formatResponse(
+            res,
+            {
+                feedPosts, 
+                totalPosts,
+                page: Number(page),
+                numberOfPages: Math.ceil(totalPosts / LIMIT),
+                numberOfPostsPerPage: LIMIT 
+            },
+            STATUS_CODE.SUCCESS,
+            "Success!"
+        );
+
     } catch (error) {
         console.error('Error in getPosts:', error);
-        return res.status(500).json({
-            status: 500,
-            message: "Failed to retrieve posts",
-            error: error.message,
-        });
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            // "Failed to retrieve posts"
+            error.message
+        );
     }
 };
 
@@ -144,20 +150,25 @@ const createPost = async (req, res) => {
 
         await transaction.commit();
 
-        return res.status(201).json({
-            data: newPost,
-            tags: tags,
-            status: 201,
-            message: "Success!",
-        });
+        return formatResponse(
+            res,
+            {
+                newPost,
+                tags,
+            },
+            STATUS_CODE.CREATED,
+            "Success!"
+        );
+
 
     } catch (error) {
         await transaction.rollback();
-        return res.status(500).json({
-            status: 500,
-            message: "Failed to create post",
-            error: error.message,
-        });
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            error.message
+        );
     }
 };
 
@@ -171,25 +182,34 @@ const getPost = async (req, res) => {
 
         // If no post is found, return a 404 status
         if (!post) {
-            return res.status(404).json({
-                status: 404,
-                message: `Post with id: ${post_id} not found`,
-            });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                `No post with id: ${post_id}`
+            );
+
         }
 
         // If the post is found, return it with a success message
-        return res.status(200).json({
-            data: post,
-            status: 200,
-            message: "Success!"
-        });
+        return formatResponse(
+            res,
+            { 
+                post
+            },
+            STATUS_CODE.SUCCESS,
+            "Success!"
+        );
+
     } catch (error) {
         // Handling errors and sending a response with error details
-        return res.status(500).json({
-            status: 500,
-            message: "Failed to retrieve post",
-            error: error.message,
-        });
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            // "Failed to retrieve posts"
+            error.message
+        );
     }
 };
 
@@ -204,10 +224,12 @@ const commentPost = async (req, res) => {
 
         // If the post is not found, return a 404 status
         if (!post) {
-            return res.status(404).json({
-                status: 404,
-                message: `Post with id: ${post_id} not found`,
-            });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                `No post with id: ${post_id}`
+            );
         }
 
         // Create the new comment
@@ -227,19 +249,24 @@ const commentPost = async (req, res) => {
         const updatedPost = await post.save(); // Use save() to ensure validation
 
         // Return the updated post with a success message
-        return res.status(200).json({
-            data: updatedPost,
-            status: 200,
-            message: "Comment added successfully!"
-        });
+        return formatResponse(
+            res,
+            {
+                updatedPost
+            },
+            STATUS_CODE.SUCCESS,
+            "Comment added successfully!"
+        );
 
     } catch (error) {
         // Handle any errors that occur
-        return res.status(500).json({
-            status: 500,
-            message: "Failed to add comment",
-            error: error.message,
-        });
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            // "Failed to add comment"
+            error.message
+        );
     }
 };
 
@@ -252,18 +279,22 @@ const updatePost = async (req, res) => {
 
     try {
         if (!mongoose.Types.ObjectId.isValid(post_id)) {
-            return res.status(404).json({
-                status: 404,
-                message: `No post with id: ${post_id}`,
-            });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                `No post with id: ${post_id}`
+            );
         }
 
         const post = await Post.findById(post_id);
         if (!post) {
-            return res.status(404).json({
-                status: 404,
-                message: "Post not found",
-            });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                "Post not found"
+            );
         }
 
         post.caption = caption;
@@ -291,20 +322,25 @@ const updatePost = async (req, res) => {
 
         await transaction.commit();
 
-        return res.status(200).json({
-            data: post,
-            tags: tags,
-            status: 200,
-            message: "Post updated successfully!",
-        });
+        return formatResponse(
+            res,
+            {
+                post,
+                tags,
+            },
+            STATUS_CODE.SUCCESS,
+            "Post updated successfully!"
+        );
+
 
     } catch (error) {
         await transaction.rollback();
-        return res.status(500).json({
-            status: 500,
-            message: "Failed to update post",
-            error: error.message,
-        });
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            error.message
+        );
     }
 };
 
@@ -320,14 +356,24 @@ const updateComment = async (req, res) => {
         const post = await Post.findById(post_id);
 
         if (!post) {
-            return res.status(404).json({ message: "Post not found" });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                "Post not found"
+            );
         }
 
         // Find the comment by comment_id
         const comment = post.comments.id(comment_id);
 
         if (!comment) {
-            return res.status(404).json({ message: "Comment not found" });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                "Comment not found"
+            );
         }
 
         // Update comment information
@@ -338,16 +384,22 @@ const updateComment = async (req, res) => {
         // Save the post with the updated comment
         await post.save();
 
-        return res.status(200).json({
-            data: post,
-            status: 200,
-            message: "Comment updated successfully!"
-        });
+        return formatResponse(
+            res,
+            {
+                post
+            },
+            STATUS_CODE.SUCCESS,
+            "Comment updated successfully!"
+        );
+
     } catch (error) {
-        return res.status(500).json({
-            message: "An error occurred while updating the comment",
-            error: error.message
-        });
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            error.message
+        );
     }
 };
 
@@ -360,18 +412,22 @@ const likePost = async (req, res) => {
         
         // Validate the ID
         if (!mongoose.Types.ObjectId.isValid(post_id)) {
-            return res.status(404).json({
-                status: 404,
-                message: `No post with id: ${post_id}`
-            });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                `No post with id: ${post_id}`
+            );
         }
 
         // Validate user_id and full_name
         if (!user_id || !full_name) {
-            return res.status(400).json({
-                status: 400,
-                message: "Missing required fields: user_id and full_name"
-            });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.BAD_REQUEST,
+                "Missing required fields: user_id and full_name"
+            );
         }
 
         // Find the post by ID
@@ -379,10 +435,12 @@ const likePost = async (req, res) => {
         
         // Ensure post exists
         if (!post) {
-            return res.status(404).json({ 
-                status: 404,
-                message: "Post not found"
-            });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                "Post not found"
+            );
         }
 
         // Check if the user has already liked the post
@@ -398,18 +456,22 @@ const likePost = async (req, res) => {
         // Save the updated post
         const updatedPost = await post.save();
 
-        return res.status(200).json({
-            data: updatedPost,
-            status: 200,
-            message: "Success!"
-        });
+        return formatResponse(
+            res,
+            {
+                updatedPost
+            },
+            STATUS_CODE.SUCCESS,
+            "Success!"
+        );
 
     } catch (error) {
-        return res.status(500).json({
-            status: 500,
-            message: "An error occurred while updating the post",
-            error: error.message
-        });
+        return formatResponse(  
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            error.message
+        );
     }
 };
 
@@ -420,7 +482,12 @@ const deletePost = async (req, res) => {
     try {
         // Validate post ID
         if (!mongoose.Types.ObjectId.isValid(post_id)) {
-            return res.status(404).send(`No post with id: ${post_id}`);
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                `No post with id: ${post_id}`
+            );
         }
 
         // Delete the post
@@ -428,20 +495,30 @@ const deletePost = async (req, res) => {
 
         // Ensure post was found and deleted
         if (!deletedPost) {
-            return res.status(404).json({ message: "Post not found" });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                "Post not found"
+            );
         }
 
-        return res.status(200).json({
-            data: deletedPost,
-            status: 200,
-            message: "Post deleted successfully!"
-        });
+        return formatResponse(
+            res,
+            {
+                deletedPost
+            },
+            STATUS_CODE.SUCCESS,
+            "Post deleted successfully!"
+        );
 
     } catch (error) {
-        return res.status(500).json({
-            message: "An error occurred while deleting the post",
-            error: error.message
-        });
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            error.message
+        ); 
     }
 };
 
@@ -451,7 +528,12 @@ const deleteComment = async (req, res) => {
     try {
         // Validate post ID
         if (!mongoose.Types.ObjectId.isValid(post_id)) {
-            return res.status(404).send(`No post with id: ${post_id}`);
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                `No post with id: ${post_id}`
+            );
         }
 
         // Find the post
@@ -459,14 +541,24 @@ const deleteComment = async (req, res) => {
 
         // Ensure post exists
         if (!post) {
-            return res.status(404).json({ message: "Post not found" });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                "Post not found"
+            );
         }
 
         // Find the comment and remove it
         const comment = post.comments.id(comment_id);
 
         if (!comment) {
-            return res.status(404).json({ message: "Comment not found" });
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                "Comment not found"
+            );
         }
 
         comment.remove(); // Remove the comment from the post
@@ -474,17 +566,22 @@ const deleteComment = async (req, res) => {
         // Save the updated post
         const updatedPost = await post.save();
 
-        return res.status(200).json({
-            data: updatedPost,
-            status: 200,
-            message: "Comment deleted successfully!"
-        });
+        return formatResponse(
+            res,
+            {
+                updatedPost
+            },
+            STATUS_CODE.SUCCESS,
+            "Comment deleted successfully!"
+        );
 
     } catch (error) {
-        return res.status(500).json({
-            message: "An error occurred while deleting the comment",
-            error: error.message
-        });
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            error.message
+        );
     }
 };
 

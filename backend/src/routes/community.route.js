@@ -27,8 +27,8 @@ router.route("/")
 
 router.get("/search", searchCommunity);
 
-router.route("/:community_id")
-  .get(verifyMember, getCommunityDetail)
+router.route("/:community_id", verifyMember)
+  .get(getCommunityDetail)
   .patch(verifyAdmin, updateCommunity)
   .delete(verifyAdmin, deleteCommunity);
 
