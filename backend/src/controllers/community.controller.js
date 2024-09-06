@@ -4,12 +4,10 @@ const Community = db.community;
 const Document = db.document
 const User = db.user;
 const Member = db.member;
-const Document_Access = db.document_access;
 const { STATUS_CODE, formatResponse } = require("../utils/services");
 const { Op, Sequelize } = require("sequelize");
 const Tag = db.tag;
 const Community_Tag = db.community_tag;
-const Document_Tag = db.document_tag;
 
 const getCommunityList = async (req, res) => {
   try {
@@ -247,6 +245,9 @@ const searchCommunity = async (req, res) => {
       include: [
         [Sequelize.literal(`owner = ${userID}`), 'is_owner'],
         [Sequelize.literal(`EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)`), 'is_joined'],
+      ],
+      exclude: [
+        'owner', 'is_active', 'updatedAt', 'community_id'
       ]
     };
     const include = [
@@ -598,88 +599,6 @@ const updateMemberProfile = async (req, res) => {
   );
 };
 
-const uploadDocument = async (req, res) => {
-  try {
-    const {document_name, price, access_days, full_content_path, preview_content_path, description, tags} = req.body;
-    const uploaded_by = req.user.user_id;
-    const communityID = req.params.community_id;
-
-    const tagsToCreate = [];
-    const tag_arr = [];
-
-    for (const tag of tags) {
-      const existingTag = await Tag.findOne({ where: { tag_name: tag } });
-      if (!existingTag) {
-        tagsToCreate.push({ tag_name: tag });
-      } else {
-        tag_arr.push(existingTag);
-      }
-    }
-
-    await Tag.bulkCreate(tagsToCreate, {
-      ignoreDuplicates: true
-    });
-    
-    const newDocument = await Document.create({
-      document_name,
-      community_id: communityID,
-      price,
-      access_days,
-      full_content_path,
-      preview_content_path,
-      description,
-      uploaded_by
-    });
-
-    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
-    tag_arr.push(...new_tag_arr);
-    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
-    const documentTagsToCreate = tag_arr_id.map(tagId => ({
-      document_id: newDocument.document_id,
-      tag_id: tagId
-    }));
-
-    await Document_Tag.bulkCreate(documentTagsToCreate, {
-      ignoreDuplicates: true
-    });
-
-    await Document_Access.create({
-      document_id: newDocument.document_id,
-      user_id: uploaded_by,
-      document_access_level: 2,
-      purchase_date: newDocument.createAt,
-      price_paid: -1,
-      expired_date: new Date("9999-12-31T23:59:59.999Z")
-    });    
-
-    return formatResponse(
-      res,
-      {
-        document_id: newDocument.document_id,
-        document_name: newDocument.document_name,
-        community_id: newDocument.community_id,
-        price: newDocument.price,
-        rent_days: newDocument.access_days,
-        tags,
-        full_file_url: newDocument.full_content_path,
-        preview_file_url: newDocument.preview_content_path,
-        description: newDocument.description,
-        uploaded_by: newDocument.uploaded_by,
-        createdAt: newDocument.createAt,
-        active: newDocument.active
-      },
-      STATUS_CODE.CREATED,
-      "Document uploaded successfully!"
-    );
-  } catch (error) {
-    return formatResponse(
-      res,
-      error,
-      STATUS_CODE.INTERNAL_SERVER_ERROR,
-      "Failed to upload document!"
-    );
-  }
-};
 
 module.exports = {
   getCommunityList,
@@ -693,5 +612,4 @@ module.exports = {
   updateCommunity,
   deleteCommunity,
   searchCommunity,
-  uploadDocument
 };
