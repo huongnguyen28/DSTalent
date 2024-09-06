@@ -1,6 +1,7 @@
 const { removeTicks } = require("sequelize/lib/utils");
 const db = require("../configs/db");
 const { STATUS_CODE, formatResponse } = require("../utils/services");
+const { get } = require("http");
 const BasicTest = db.basic_test;
 const Community = db.community;
 const User = db.user;
@@ -13,18 +14,6 @@ const getRandomBasicTest = async (req, res) => {
     // Fetch all basic tests for the community
     const basicTests = await BasicTest.findAll({
       where: { community_id: community_id },
-      // include: [
-      //   {
-      //     model: Community,
-      //     // as: "community",
-      //     attributes: ["community_id", "name"],
-      //   },
-      //   {
-      //     model: User,
-      //     // as: "created_by",
-      //     attributes: ["user_id", "full_name"],
-      //   },
-      // ],
     });
 
     // Return error if no basic tests are found
@@ -33,48 +22,71 @@ const getRandomBasicTest = async (req, res) => {
         res,
         {},
         STATUS_CODE.NOT_FOUND,
-        "No basic tests found for the community",
-      );  
+        "No basic tests found for the community"
+      );
     }
 
     // Randomly select a basic test
-    const randomTest = basicTests[Math.floor(Math.random() * basicTests.length)];
+    const randomTest =
+      basicTests[Math.floor(Math.random() * basicTests.length)];
 
     // Send response
     return formatResponse(
       res,
       {
-        id: randomTest.basic_test_id,
+        basic_test_id: randomTest.basic_test_id,
+        description: randomTest.description,
         content: randomTest.content,
-        // created_by: {
-        //   id: randomTest.created_by.id,
-        //   name: randomTest.created_by.name,
-        // },
-        // community: {
-        //   id: randomTest.community.id,
-        //   name: randomTest.community.name,
-        // },
       },
       STATUS_CODE.SUCCESS,
-      "Successfully fetched random basic test",
-    )
+      "Successfully fetched random basic test"
+    );
   } catch (error) {
     return formatResponse(
       res,
       {},
       STATUS_CODE.INTERNAL_SERVER_ERROR,
-      error.message,
+      error.message
+    );
+  }
+};
+
+// Get all basic tests for a community
+// Only admins can view all basic tests
+// Members can only view random basic tests
+const getBasicTests = async (req, res) => {
+  try {
+    const communityId = req.params.community_id;
+
+    // fetch all basic tests for the community
+    const basicTests = await BasicTest.findAll({
+      attributes: { exclude: ["content"] },
+      where: { community_id: communityId },
+    });
+
+    return formatResponse(
+      res,
+      basicTests,
+      STATUS_CODE.SUCCESS,
+      "Successfully fetched basic tests"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      error.message
     );
   }
 };
 
 const createBasicTest = async (req, res) => {
   try {
-    const { community_id } = req.params;
-    const { content } = req.body; // Content of the basic test
+    const communityId = Number(req.params.community_id);
+    const { description, content } = req.body; // Content of the basic test
 
     // Check if the community exists
-    const community = await Community.findByPk(community_id);
+    const community = await Community.findByPk(communityId);
     if (!community) {
       return formatResponse(
         res,
@@ -86,7 +98,8 @@ const createBasicTest = async (req, res) => {
 
     // Create a new basic test
     const newBasicTest = await BasicTest.create({
-      community_id: community_id,
+      community_id: communityId,
+      description,
       content,
     });
 
@@ -94,16 +107,10 @@ const createBasicTest = async (req, res) => {
     return formatResponse(
       res,
       {
-        id: newBasicTest.basic_test_id,
+        basic_test_id: newBasicTest.basic_test_id,
+        community_id: newBasicTest.community_id,
+        description: newBasicTest.description,
         content: newBasicTest.content,
-        // created_by: {
-        //   id: randomTest.created_by.id,
-        //   name: randomTest.created_by.name,
-        // },
-        // community: {
-        //   id: community_id,
-        //   name: community.name,
-        // },
       },
       STATUS_CODE.SUCCESS,
       "Basic test uploaded successfully"
@@ -123,20 +130,7 @@ const deleteBasicTest = async (req, res) => {
     const { basic_test_id } = req.params; // Get the test ID from request parameters
 
     // Find the basic test by its ID
-    const basicTest = await BasicTest.findByPk(basic_test_id
-    //   , {
-    //   include: [
-    //     {
-    //       model: Community,
-    //       attributes: ["community_id", "name"],
-    //     },
-    //     {
-    //       model: User,
-    //       attributes: ["user_id", "full_name"],
-    //     },
-    //   ],
-    // }
-  );
+    const basicTest = await BasicTest.findByPk(basic_test_id);
 
     // Check if the basic test exists
     if (!basicTest) {
@@ -170,9 +164,106 @@ const deleteBasicTest = async (req, res) => {
   }
 };
 
+const submitBasicTest = async (req, res) => {
+  try {
+    const { basic_test_id, community_id } = req.params; // Get the test ID from request parameters
+    const { user_id } = req.user; // Get the user ID from the request
+
+    // Find the basic test by its ID
+    const basicTest = await BasicTest.findByPk(basic_test_id);
+
+    // Check if the basic test exists
+    if (!basicTest) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Basic test not found"
+      );
+    }
+
+    // if user has already submitted the test
+    // then override the previous submission
+    const previousBasicTestSubmit = await BasicTestSubmit.findOne({
+      where: { basic_test_id: basic_test_id, user_id: user_id },
+    });
+
+    if (previousBasicTestSubmit) {
+      // Delete the previous submission
+      await BasicTestSubmit.destroy({
+        where: { basic_test_id: basic_test_id, user_id: user_id },
+      });
+    }
+
+    // Submit the basic test
+    await BasicTestSubmit.create({
+      basic_test_id: basic_test_id,
+      user_id: user_id,
+    });
+
+    // Return success response
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.SUCCESS,
+      "Basic test submitted successfully"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
+const getBasicTestSubmissions = async (req, res) => {
+  try {
+    const communityId = req.params.community_id;
+    const isAdmin = req.member.is_admin;
+    const userId = req.user.user_id;
+    const whereCondition = {
+      community_id: communityId,
+    };
+
+    if (!isAdmin) {
+      whereCondition.user_id = userId;
+    }
+    // Member can only view their own submissions
+    const memberSubmissions = await BasicTestSubmit.findAll({
+      include: [
+        {
+          model: BasicTest,
+          attributes: [], // This will prevent including BasicTest attributes in the final result
+          where: {
+            basic_test_id: Sequelize.col("BasicTestSubmit.basic_test_id"),
+          },
+        },
+      ],
+      where: whereCondition,
+    });
+    return formatResponse(
+      res,
+      memberSubmissions,
+      STATUS_CODE.SUCCESS,
+      "Successfully fetched basic test submissions"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
 
 module.exports = {
   getRandomBasicTest,
   createBasicTest,
-  deleteBasicTest
+  getBasicTests,
+  deleteBasicTest,
+  submitBasicTest,
+  getBasicTestSubmissions,
 };
