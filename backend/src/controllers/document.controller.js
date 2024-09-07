@@ -50,20 +50,14 @@ const uploadDocument = async (req, res) => {
     const communityID = req.params.community_id;
 
     const tagsToCreate = [];
-    const tag_arr = [];
 
     for (const tag of tags) {
-      const existingTag = await Tag.findOne({ where: { tag_name: tag } });
-      if (!existingTag) {
-        tagsToCreate.push({ tag_name: tag });
-      } else {
-        tag_arr.push(existingTag);
-      }
+      const [existingTag, created] = await Tag.findOrCreate({
+        where: { tag_name: tag },
+        defaults: { tag_name: tag }
+      });
+      tagsToCreate.push(existingTag);
     }
-
-    await Tag.bulkCreate(tagsToCreate, {
-      ignoreDuplicates: true
-    });
     
     const newDocument = await Document.create({
       document_name,
@@ -75,19 +69,17 @@ const uploadDocument = async (req, res) => {
       description,
       uploaded_by
     });
-
-    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
-    tag_arr.push(...new_tag_arr);
-    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    
+    const tag_arr_id = tagsToCreate.map(tag => tag.tag_id);
     const documentTagsToCreate = tag_arr_id.map(tagId => ({
       document_id: newDocument.document_id,
       tag_id: tagId
     }));
-
+    
     await Document_Tag.bulkCreate(documentTagsToCreate, {
       ignoreDuplicates: true
     });
-
+    
     await Document_Access.create({
       document_id: newDocument.document_id,
       user_id: uploaded_by,
@@ -95,7 +87,7 @@ const uploadDocument = async (req, res) => {
       purchase_date: newDocument.createAt,
       price_paid: -1,
       expired_date: new Date("9999-12-31T23:59:59.999Z")
-    });    
+    });
 
     return formatResponse(
       res,
@@ -418,35 +410,31 @@ const updateDocument = async(req, res) => {
 
     if (typeof tags !== 'undefined') {
       modifed_tags = true;
+      
       await Document_Tag.destroy({ where: { document_id: documentId } });
+    
       const tagsToCreate = [];
-      const tag_arr = [];
-
+    
       for (const tag of tags) {
-        const existingTag = await Tag.findOne({ where: { tag_name: tag } });
-        if (!existingTag) {
-          tagsToCreate.push({ tag_name: tag });
-        } else {
-          tag_arr.push(existingTag);
-        }
+        const [existingTag, created] = await Tag.findOrCreate({
+          where: { tag_name: tag },
+          defaults: { tag_name: tag }
+        });
+        tagsToCreate.push(existingTag);
       }
-
-      await Tag.bulkCreate(tagsToCreate, {
-        ignoreDuplicates: true
-      });
-
-      const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
-      tag_arr.push(...new_tag_arr);
-      const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    
+      const tag_arr_id = tagsToCreate.map(tag => tag.tag_id);
+    
       const documentTagsToCreate = tag_arr_id.map(tagId => ({
         document_id: documentId,
         tag_id: tagId
       }));
-
+    
       await Document_Tag.bulkCreate(documentTagsToCreate, {
         ignoreDuplicates: true
-      }); 
-    } 
+      });
+    }
+    
     const updatedDocument = await Document.update(
       {
         document_name: document_name || existingDocument.document_name,

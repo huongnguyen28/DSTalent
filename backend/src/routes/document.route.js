@@ -12,9 +12,6 @@ router.use(verifyToken);
 
 router.route("/:document_id")
   .delete(verifyDocumentAccess, deleteDocument)
-
-router.get("/search/communities/:community_id", searchDocument);
-
-router.patch("/:document_id", verifyDocumentAccess, updateDocument);
+  .patch(verifyDocumentAccess, updateDocument);
 
 module.exports = router;

@@ -28,7 +28,7 @@ router.get("/search", searchCommunity);
 
 router.route("/:community_id")
   .get(verifyMember, getCommunityDetail)
-  .patch(verifyAdmin, updateCommunity)
+  .patch(verifyMember, verifyAdmin, updateCommunity)
   .delete(verifyAdmin, deleteCommunity);
 
 router.get("/:community_id/members", verifyMember, getCommunityMembers);
@@ -40,6 +40,8 @@ router.post("/:community_id/leave", verifyMember, leaveCommunity);
 const { uploadDocument } = require("../controllers/document.controller");
 router.post("/:community_id/documents", verifyMember, uploadDocument);
 
+const { searchDocument } = require("../controllers/document.controller");
+router.get("/:community_id/documents/search", searchDocument);
 
 router
   .route("/:community_id/members/:member_id")
