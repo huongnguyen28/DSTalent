@@ -47,10 +47,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM("public", "private"),
         defaultValue: "public",
       },
-      rating: {
-        type: DataTypes.FLOAT,
-        defaultValue: 0,
-      },
     },
     {
       tableName: "document",

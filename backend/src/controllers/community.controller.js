@@ -184,16 +184,15 @@ const updateCommunity = async (req, res) => {
     return formatResponse(
       res,
       {
-        community_id: communityId,
-        name: name || existingCommunity.name,
-        description: description || existingCommunity.description,
-        privacy: privacy || existingCommunity.privacy,
-        tags: tags,
-        cover_image: cover_image || existingCommunity.cover_image,
-        member_count: existingCommunity.member_count,
-        rating: existingCommunity.rating,
-        contact_phone: existingCommunity.contact_phone,
-        contact_email: existingCommunity.contact_email
+        name,
+        description,
+        privacy,
+        tags,
+        cover_image,
+        member_count,
+        rating,
+        contact_phone,
+        contact_email
       },
       STATUS_CODE.SUCCESS,
       "Community updated successfully!"

@@ -21,7 +21,7 @@ const deleteDocument = async (req, res) => {
 
     const documentId = req.params.document_id;
     await Document.update(
-      {active: false},
+      {is_active: false},
       {where: {document_id: documentId}}
     );
     return formatResponse(
@@ -103,6 +103,7 @@ const uploadDocument = async (req, res) => {
         document_id: newDocument.document_id,
         document_name: newDocument.document_name,
         community_id: newDocument.community_id,
+        privacy: newDocument.privacy,
         price: newDocument.price,
         rent_days: newDocument.access_days,
         tags,
@@ -111,7 +112,6 @@ const uploadDocument = async (req, res) => {
         description: newDocument.description,
         uploaded_by: newDocument.uploaded_by,
         createdAt: newDocument.createAt,
-        active: newDocument.active
       },
       STATUS_CODE.CREATED,
       "Document uploaded successfully!"
@@ -277,7 +277,6 @@ const searchDocument = async (req, res) => {
         order: [
           [Sequelize.literal(`CASE WHEN uploaded_by = ${userID} THEN 0 ELSE 1 END`), 'ASC'],
           [Sequelize.literal(`CASE WHEN uploaded_by = ${userID} THEN privacy ELSE NULL END`), 'DESC'],
-          [`rating`, 'DESC']
         ]
       });
     } else {
@@ -396,9 +395,112 @@ const searchDocument = async (req, res) => {
   }
 };
 
+const updateDocument = async(req, res) => {
+  try {
+    if(req.document.document_access_level !== 2) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.FORBIDDEN,
+        "You don't have permission to update this document!"
+      )
+    }
+    const documentId = req.params.document_id;
+
+    const existingDocument = await Document.findOne(
+      {
+        where: { document_id: documentId }
+      }
+    );
+
+    const {document_name, price, access_days, full_content_path, preview_content_path, description, privacy, tags} = req.body;
+    let modifed_tags = false;
+
+    if (typeof tags !== 'undefined') {
+      modifed_tags = true;
+      await Document_Tag.destroy({ where: { document_id: documentId } });
+      const tagsToCreate = [];
+      const tag_arr = [];
+
+      for (const tag of tags) {
+        const existingTag = await Tag.findOne({ where: { tag_name: tag } });
+        if (!existingTag) {
+          tagsToCreate.push({ tag_name: tag });
+        } else {
+          tag_arr.push(existingTag);
+        }
+      }
+
+      await Tag.bulkCreate(tagsToCreate, {
+        ignoreDuplicates: true
+      });
+
+      const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
+      tag_arr.push(...new_tag_arr);
+      const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+      const documentTagsToCreate = tag_arr_id.map(tagId => ({
+        document_id: documentId,
+        tag_id: tagId
+      }));
+
+      await Document_Tag.bulkCreate(documentTagsToCreate, {
+        ignoreDuplicates: true
+      }); 
+    } 
+    const updatedDocument = await Document.update(
+      {
+        document_name: document_name || existingDocument.document_name,
+        price: price || existingDocument.price,
+        access_days: access_days || existingDocument.access_days,
+        full_content_path: full_content_path || existingDocument.full_content_path,
+        preview_content_path: preview_content_path || existingDocument.preview_content_path,
+        description: description || existingDocument.description,
+        privacy: privacy || existingDocument.privacy
+      },
+      {
+        where: { document_id: documentId },
+      }
+    );
+
+    if (updatedDocument[0] === 0 && !modifed_tags) { 
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_MODIFIED,
+        "No changes were made!"
+      );
+    }
+
+    return formatResponse(
+      res,
+      {
+        document_name,
+        price,
+        access_days,
+        tags,
+        full_content_path,
+        preview_content_path,
+        description,
+        privacy,
+      },
+      STATUS_CODE.SUCCESS,
+      "Document updated successfully!"
+    );
+   
+  } catch(error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to update document!"
+    );
+  }
+};
+
 module.exports = {
   deleteDocument,
   uploadDocument,
   updateDocumentAccessLevel,
-  searchDocument
+  searchDocument,
+  updateDocument
 }
