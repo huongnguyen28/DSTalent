@@ -39,9 +39,17 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      active: {
+      is_active: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
+      },
+      privacy: {
+        type: DataTypes.ENUM("public", "private"),
+        defaultValue: "public",
+      },
+      rating: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0,
       },
     },
     {

@@ -11,7 +11,7 @@ const {
   updateMemberProfile,
   updateCommunity,
   deleteCommunity,
-  searchCommunity
+  searchCommunity,
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
@@ -26,8 +26,8 @@ router.route("/")
 
 router.get("/search", searchCommunity);
 
-router.route("/:community_id")
-  .get(verifyMember, getCommunityDetail)
+router.route("/:community_id", verifyMember)
+  .get(getCommunityDetail)
   .patch(verifyAdmin, updateCommunity)
   .delete(verifyAdmin, deleteCommunity);
 
@@ -36,6 +36,9 @@ router.get("/:community_id/members", verifyMember, getCommunityMembers);
 router.post("/:community_id/join", joinCommunity);
 
 router.post("/:community_id/leave", verifyMember, leaveCommunity);
+
+const { uploadDocument } = require("../controllers/document.controller");
+router.post("/:community_id/documents", verifyMember, uploadDocument);
 
 
 router

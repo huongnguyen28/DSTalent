@@ -86,7 +86,7 @@ db.document_access = require("../models/document_access.model.js")(
 );
 
 // MongoDB models
-db.posts = require("../models/post.model.js")(mongoose);
+db.post = require("../models/post.model.js")(mongoose);
 
 db.chat_room = require("../models/chat_room.model.js")(mongoose);
 db.chat_member = require("../models/chat_member.model.js")(mongoose);

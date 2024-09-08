@@ -43,7 +43,10 @@ router.post('/me/communities/:community_id/up-level-request', verifyMember, crea
 router.get('/me/communities/:community_id/current-up-level-request-id', verifyMember, getCurrentUpLevelRequestId);
 router.post('/me/communities/:community_id/submit-answer', verifyMember, submitAnswer);
 
-// =====================================================
+// ===================== Cuong ================================
 
+const { updateDocumentAccessLevel } = require('../controllers/document.controller');
+
+router.patch("/:user_id/documents/:document_id", updateDocumentAccessLevel);
 
 module.exports = router;
