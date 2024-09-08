@@ -9,6 +9,8 @@ const UserWallet = db.user_wallet;
 
 const { formatFilePath, readAndTransformImageToBase64, formatResponse, STATUS_CODE } = require("../utils/services");
 
+// Kiệt ================================================
+
 const updateUser = async (req, res) => {
     try {
         const user = await User.findByPk(req.user.user_id);
@@ -63,8 +65,9 @@ const getUser = async (req, res) => {
             );
 
         const { password, refresh_token, verify_code, ...others } = user.dataValues;
-
-        others.avatar = await readAndTransformImageToBase64(user.avatar);
+        
+        if (others.avatar)
+            others.avatar = await readAndTransformImageToBase64(user.avatar);
 
         return formatResponse(
             res,
@@ -88,6 +91,13 @@ const getUser = async (req, res) => {
 
 const useWallet = async (req, res) => {
     try {
+        if (!req.body.global_id)
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.BAD_REQUEST,
+                "All fields are required!"
+            );
         const wallet = await Wallet.findOne({ where: { id: req.body.global_id } });
         if (wallet) {
             const userWallet = await UserWallet.findOne({where: {user_id: req.user.user_id, wallet_id: wallet.wallet_id}});
@@ -132,6 +142,8 @@ const useWallet = async (req, res) => {
 
 const createWallet = async (req, res) => {
     try {
+        const is_first = await UserWallet.findOne({where: {user_id: req.user.user_id}}) ? false : true;
+
         const id = Math.floor(Math.random() * (100000 - 1 + 1)) + 1;
         await Wallet.create({
             global_id: id,
@@ -140,7 +152,8 @@ const createWallet = async (req, res) => {
         .then(async (wallet) => {
             await UserWallet.create({
                 user_id: req.user.user_id,
-                wallet_id: wallet.wallet_id
+                wallet_id: wallet.wallet_id,
+                is_active: is_first
             });
         })
 
@@ -166,6 +179,85 @@ const createWallet = async (req, res) => {
         );
     }
 };
+
+const getWalletList = async (req, res) => {
+    try {
+        const userWalletList = await UserWallet.findAll({where: {user_id: req.user.user_id}});
+
+        const walletList = await Promise.all(
+            userWalletList.map(async (userWallet) => {
+                const wallet = await Wallet.findByPk(userWallet.wallet_id);
+                return {
+                    global_id: wallet.global_id,
+                    is_active: userWallet.is_active ? true : false
+                }
+            })
+        );
+
+        return formatResponse(
+            res,
+            {
+                wallet_list: userWalletList ? walletList : []
+            },
+            STATUS_CODE.SUCCESS,
+            "Get wallet list successfully!"
+        );
+    }
+    catch (err) {
+        console.log(err.message);
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            err.message
+        );
+    }
+};
+
+const chooseWallet = async (req, res) => {
+    if (!req.body.global_id)
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.BAD_REQUEST,
+            "All fields are required!"
+        );
+
+    const wallet = await Wallet.findOne({where: {global_id: req.body.global_id}});
+    if (!wallet)
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.NOT_FOUND,
+            "Wallet not found!"
+        );
+
+    const user = await User.findByPk(req.user.user_id);
+    if (!user)
+        return formatResponse(
+            res,
+            {},
+            STATUS_CODE.NOT_FOUND,
+            "User not found!"
+        );
+    user.global_id_active = wallet.wallet_id;
+    await user.save();
+
+    const oldUserWallet = await UserWallet.findOne({where: {user_id: req.user.user_id, is_active: true}});
+    oldUserWallet.is_active = false;
+    await oldUserWallet.save();
+
+    const thisUserWallet = await UserWallet.findOne({where: {user_id: req.user.user_id, wallet_id: wallet.wallet_id}});
+    thisUserWallet.is_active = true;
+    await thisUserWallet.save();
+
+    return formatResponse(
+        res,
+        {},
+        STATUS_CODE.SUCCESS,
+        "Choose wallet successfully!"
+    );
+}
 
 // Tín ================================================
 
@@ -265,6 +357,8 @@ module.exports = {
     getUser,
     useWallet,
     createWallet,
+    getWalletList,
+    chooseWallet,
     getUpLevelPhase,
     createUpLevelRequest,
     getCurrentUpLevelRequestId,
