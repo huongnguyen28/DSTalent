@@ -76,7 +76,7 @@ const registerUser = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
   try {
-    if (!req.body.verify_code || !req.body.email || !req.body.is_delete)
+    if (!req.body.verify_code || !req.body.email || req.body.is_delete === undefined)
       return formatResponse(
         res,
         {},
@@ -97,7 +97,7 @@ const verifyEmail = async (req, res) => {
       );
     }
 
-    if (user.is_verify)
+    if (!user.verify_code)
       return formatResponse(
         res,
         {},
@@ -113,7 +113,7 @@ const verifyEmail = async (req, res) => {
         "Wrong verify code!"
       );
     
-    if (req.body.is_delete = true) {
+    if (req.body.is_delete) {
       user.verify_code = null;
 
       if (!user.is_verify)
