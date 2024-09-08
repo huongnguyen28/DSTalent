@@ -7,6 +7,8 @@ const {
 const { verifyMember } = require('../middlewares/verify-member');
 const { verifyToken } = require('../middlewares/verify-token');
 
-router.get('/:up_level_request_id/tests', verifyToken, getTests);
+router.use(verifyToken);
+
+router.get('/:up_level_request_id/tests', getTests);
 
 module.exports = router;

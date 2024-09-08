@@ -50,4 +50,9 @@ router
 
 router.use("/:community_id/chats", verifyMember, chatRoute);
 
+const { listLevelUpRequests, agreedToJudge } = require("../controllers/up_level.controller");
+router.get("/:community_id/judge-requests", verifyMember, listLevelUpRequests);
+router.get("/:community_id/up-level-requests/:up_level_request_id/agree", verifyMember, agreedToJudge);
+
+
 module.exports = router;

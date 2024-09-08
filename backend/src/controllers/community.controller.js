@@ -479,6 +479,9 @@ const joinCommunity = async (req, res) => {
         where: { member_id: member.dataValues.member_id },
       }
     );
+    newMember = await Member.findOne({
+      where: { member_id: member.dataValues.member_id },
+    });
   } else {
     const userInDb = await User.findOne({
       attributes: ["user_id"],
@@ -502,6 +505,12 @@ const joinCommunity = async (req, res) => {
       is_joined: true,
     });
   }
+  await Community.update(
+    { member_count: Sequelize.literal("member_count + 1") },
+    {
+      where: { community_id: communityId },
+    }
+  );
   return formatResponse(
     res,
     newMember,
@@ -524,12 +533,28 @@ const leaveCommunity = async (req, res) => {
       STATUS_CODE.NOT_FOUND,
       "User is not a member of this community!"
     );
+  if(member.is_admin) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.FORBIDDEN,
+      "Admin cannot leave the community!"
+    );
+  }
   const updatedMember = await Member.update(
     { is_joined: false },
     {
       where: { community_id: communityId, user_id: userId },
     }
   );
+
+  await Community.update(
+    { member_count: Sequelize.literal("member_count - 1") },
+    {
+      where: { community_id: communityId }
+    }
+  );
+
   return formatResponse(
     res,
     updatedMember,
