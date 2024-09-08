@@ -42,21 +42,15 @@ const createCommunity = async (req, res) => {
     const {name, description, privacy, tags, cover_image} = req.body;
 
     const tagsToCreate = [];
-    const tag_arr = [];
 
     for (const tag of tags) {
-      const existingTag = await Tag.findOne({ where: { tag_name: tag } });
-      if (!existingTag) {
-        tagsToCreate.push({ tag_name: tag });
-      } else {
-        tag_arr.push(existingTag);
-      }
+      const [existingTag, created] = await Tag.findOrCreate({
+        where: { tag_name: tag },
+        defaults: { tag_name: tag }
+      });
+      tagsToCreate.push(existingTag);
     }
-
-    await Tag.bulkCreate(tagsToCreate, {
-      ignoreDuplicates: true
-    });
-
+    
     const newCommunity = await Community.create({
       name,
       description,
@@ -68,15 +62,13 @@ const createCommunity = async (req, res) => {
       contact_email: req.user.email,
       contact_phone: req.user.phone
     });
-
-    const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
-    tag_arr.push(...new_tag_arr);
-    const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    
+    const tag_arr_id = tagsToCreate.map(tag => tag.tag_id);
     const communityTagsToCreate = tag_arr_id.map(tagId => ({
       community_id: newCommunity.community_id,
       tag_id: tagId
     }));
-
+    
     await Community_Tag.bulkCreate(communityTagsToCreate, {
       ignoreDuplicates: true
     });
@@ -125,39 +117,34 @@ const updateCommunity = async (req, res) => {
       }
     );
 
-    const { name, description, privacy, tags, cover_image } = req.body;
+    const { name, description, privacy, tags, cover_image, contact_email, contact_phone } = req.body;
     let modifed_tags = false;
 
     if (typeof tags !== 'undefined') {
       modifed_tags = true;
+    
       await Community_Tag.destroy({ where: { community_id: communityId } });
+    
       const tagsToCreate = [];
-      const tag_arr = [];
-
+    
       for (const tag of tags) {
-        const existingTag = await Tag.findOne({ where: { tag_name: tag } });
-        if (!existingTag) {
-          tagsToCreate.push({ tag_name: tag });
-        } else {
-          tag_arr.push(existingTag);
-        }
+        const [existingTag, created] = await Tag.findOrCreate({
+          where: { tag_name: tag },
+          defaults: { tag_name: tag }
+        });
+        tagsToCreate.push(existingTag);
       }
-
-      await Tag.bulkCreate(tagsToCreate, {
-        ignoreDuplicates: true
-      });
-
-      const new_tag_arr = await Tag.findAll({ where: { tag_name: tagsToCreate.map(tag => tag.tag_name) } });
-      tag_arr.push(...new_tag_arr);
-      const tag_arr_id = tag_arr.map(tag => tag.tag_id);
+    
+      const tag_arr_id = tagsToCreate.map(tag => tag.tag_id);
+    
       const communityTagsToCreate = tag_arr_id.map(tagId => ({
         community_id: communityId,
         tag_id: tagId
       }));
-
+    
       await Community_Tag.bulkCreate(communityTagsToCreate, {
         ignoreDuplicates: true
-      }); 
+      });
     }
 
     const updatedCommunity = await Community.update(
@@ -166,6 +153,8 @@ const updateCommunity = async (req, res) => {
         description: description || existingCommunity.description,
         privacy: privacy || existingCommunity.privacy,
         cover_image: cover_image || existingCommunity.cover_image,
+        contact_email: contact_email || existingCommunity.contact_email,
+        contact_phone: contact_phone || existingCommunity.contact_phone
       },
       {
         where: { community_id: communityId },
@@ -184,16 +173,13 @@ const updateCommunity = async (req, res) => {
     return formatResponse(
       res,
       {
-        community_id: communityId,
-        name: name || existingCommunity.name,
-        description: description || existingCommunity.description,
-        privacy: privacy || existingCommunity.privacy,
-        tags: tags,
-        cover_image: cover_image || existingCommunity.cover_image,
-        member_count: existingCommunity.member_count,
-        rating: existingCommunity.rating,
-        contact_phone: existingCommunity.contact_phone,
-        contact_email: existingCommunity.contact_email
+        name,
+        description,
+        privacy,
+        tags,
+        cover_image,
+        contact_email,
+        contact_phone
       },
       STATUS_CODE.SUCCESS,
       "Community updated successfully!"
