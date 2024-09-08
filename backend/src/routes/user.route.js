@@ -6,6 +6,8 @@ const {
     getUser,
     useWallet,
     createWallet,
+    getWalletList,
+    chooseWallet
 } = require("../controllers/user.controller");
 const {verifyToken} = require("../middlewares/verify-token");
 const storage = require("../configs/multer");
@@ -14,10 +16,14 @@ const upload = multer({ storage });
 
 router.use(verifyToken);
 
+// ======================== Kiệt ========================
+
 router.patch("/me", upload.single('file'), updateUser);
-router.get("/:user_id", getUser);
+router.get("/:user_id/profile", getUser);
+router.post("/wallet/create", createWallet);
+router.post("/wallet/choose", chooseWallet);
 router.post("/wallet", useWallet);
-router.post("/wallet/create-new", createWallet);
+router.get("/wallet", getWalletList);
 
 // ======================== Tín ========================
 const { verifyMember } = require('../middlewares/verify-member');
