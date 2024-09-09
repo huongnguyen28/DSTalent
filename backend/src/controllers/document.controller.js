@@ -231,7 +231,7 @@ const searchDocument = async (req, res) => {
         [Sequelize.literal(`uploaded_by = ${userID}`), 'is_owner'],
         [Sequelize.literal(`EXISTS(SELECT 1 FROM document_access WHERE document_access.document_id = document.document_id AND document_access.user_id = ${userID})`), 'is_accessed'],
       ],
-      exclude: ['uploaded_by', 'is_active', 'updatedAt', 'community_id', 'document_id', 'full_content_path']
+      exclude: ['is_active', 'updatedAt', 'community_id', 'document_id', 'full_content_path']
     };
 
     const include = [
