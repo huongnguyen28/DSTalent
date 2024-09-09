@@ -17,7 +17,7 @@ const {
 
 const registerUser = async (req, res) => {
   try {
-    if (!req.body.email || !req.body.full_name || !req.body.password)
+    if (!req.body.email || !req.body.full_name || !req.body.password || !req.body.day_of_birth || !req.body.gender)
       return formatResponse(
         res,
         {},
@@ -42,6 +42,8 @@ const registerUser = async (req, res) => {
       email: req.body.email,
       full_name: req.body.full_name,
       password: hashedPassword,
+      day_of_birth: req.body.day_of_birth,
+      gender: req.body.gender,
       verify_code: verifyCode,
     };
 

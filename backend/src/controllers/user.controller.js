@@ -26,6 +26,7 @@ const updateUser = async (req, res) => {
         user.description = req.body.description ? req.body.description : user.description;
         user.day_of_birth = req.body.day_of_birth ? req.body.day_of_birth : user.day_of_birth;
         user.phone = req.body.phone ? req.body.phone : user.phone;
+        user.gender = req.body.gender ? req.body.gender : user.gender;
         user.avatar = req.file ? formatFilePath(req.file.filename) : user.avatar;
 
         await user.save();
