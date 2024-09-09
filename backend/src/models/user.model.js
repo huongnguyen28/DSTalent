@@ -24,7 +24,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       gender: {
         type: DataTypes.STRING,
-        values: ['male', 'female', 'other'],
+        validate: {
+          isIn: [['male', 'female', 'other']]
+        },
         allowNull: false,
       },
       day_of_birth: {
