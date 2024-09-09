@@ -259,6 +259,69 @@ const getBasicTestSubmissions = async (req, res) => {
   }
 };
 
+const updateBasicTest = async(req, res) => {
+  try {
+    const basicTestId = req.params.basic_test_id;
+    const { description, content } = req.body;
+
+    const existingBasicTest = await BasicTest.findByPk(basicTestId);
+
+    await BasicTest.update(
+      {
+        description: description || existingBasicTest.description,
+        content: content || existingBasicTest.content
+      },
+      { where: { basic_test_id: basicTestId } }
+    );
+
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.SUCCESS,
+      "Basic test updated successfully"
+    );
+
+  } catch(error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Error updating basic test"
+    );
+  }
+};
+
+const getABasicTest = async(req, res) => {
+  try {
+    const basicTestId = req.params.basic_test_id;
+
+    const basicTest = await BasicTest.findByPk(basicTestId);
+
+    if (!basicTest) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Basic test not found"
+      );
+    }
+
+    return formatResponse(
+      res,
+      basicTest,
+      STATUS_CODE.SUCCESS,
+      "Successfully fetched basic test"
+    );
+  } catch(error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Error fetching basic test"
+    );
+  }
+};
+
 module.exports = {
   getRandomBasicTest,
   createBasicTest,
@@ -266,4 +329,6 @@ module.exports = {
   deleteBasicTest,
   submitBasicTest,
   getBasicTestSubmissions,
+  updateBasicTest,
+  getABasicTest
 };
