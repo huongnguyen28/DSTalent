@@ -22,11 +22,23 @@ module.exports = (sequelize, DataTypes) => {
       phone: {
         type: DataTypes.STRING,
       },
+      gender: {
+        type: DataTypes.STRING,
+        values: ['male', 'female', 'other'],
+        allowNull: false,
+      },
       day_of_birth: {
         type: DataTypes.DATE,
       },
       description: {
         type: DataTypes.TEXT,
+      },
+      avatar: {
+        type: DataTypes.STRING,
+      },
+      global_id_active: {
+        type: DataTypes.INTEGER,
+        defaultValue: null,
       },
       refresh_token: {
         type: DataTypes.STRING,
@@ -37,13 +49,6 @@ module.exports = (sequelize, DataTypes) => {
       is_verify: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-      },
-      avatar: {
-        type: DataTypes.STRING,
-      },
-      global_id_active: {
-        type: DataTypes.INTEGER,
-        defaultValue: null,
       },
     },
     {
