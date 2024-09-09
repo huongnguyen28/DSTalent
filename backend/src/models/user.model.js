@@ -30,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       day_of_birth: {
-        type: DataTypes.DATE,
+        type: DataTypes.DATEONLY,
       },
       description: {
         type: DataTypes.TEXT,
