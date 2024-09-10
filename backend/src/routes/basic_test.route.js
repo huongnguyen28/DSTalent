@@ -8,19 +8,18 @@ const {
   getBasicTestSubmissions,
   getBasicTests,
   updateBasicTest,
-  getABasicTest
+  getABasicTest,
 } = require("../controllers/basic_test.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
 const { verifyAdmin } = require("../middlewares/verify-admin");
-const { get } = require("http");
 
 router.use(verifyToken);
 
 router
-  .route("/:community_id/basic-tests", verifyMember, verifyAdmin)
-  .post(createBasicTest)
-  .get(getBasicTests);
+  .route("/:community_id/basic-tests")
+  .post(verifyMember, verifyAdmin, createBasicTest)
+  .get(verifyMember, verifyAdmin, getBasicTests);
 
 router.get(
   "/:community_id/basic-tests/random",
