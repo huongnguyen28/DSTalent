@@ -18,7 +18,7 @@ router.use(verifyToken);
 
 // ======================== Kiệt ========================
 
-router.patch("/me", upload.single('file'), updateUser);
+router.patch("/me", upload.single('avatar'), updateUser);
 router.get("/:user_id/profile", getUser);
 router.post("/wallet/create", createWallet);
 router.post("/wallet/choose", chooseWallet);

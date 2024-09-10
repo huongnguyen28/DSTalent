@@ -23,11 +23,11 @@ const updateUser = async (req, res) => {
             );
 
         user.full_name = req.body.full_name ? req.body.full_name : user.full_name;
-        user.description = req.body.description ? req.body.description : user.description;
         user.day_of_birth = req.body.day_of_birth ? req.body.day_of_birth : user.day_of_birth;
-        user.phone = req.body.phone ? req.body.phone : user.phone;
+        user.description = req.body.description ? req.body.description : null;
+        user.phone = req.body.phone ? req.body.phone : null;
         user.gender = req.body.gender ? req.body.gender : user.gender;
-        user.avatar = req.file ? formatFilePath(req.file.filename) : user.avatar;
+        user.avatar = req.file ? formatFilePath(req.file.filename) : null;
 
         await user.save();
         const { password, refresh_token, verify_code, ...others } = user.dataValues;
