@@ -31,16 +31,16 @@ const { verifyMember } = require('../middlewares/verify-member');
 const {
     getUpLevelPhase,
     createUpLevelRequest,
-    getCurrentUpLevelRequestId,
     getCurrentLevel,
     submitAnswer,
+    getCurrentTests
 } = require('../controllers/up_level.controller');
 const { verify } = require('jsonwebtoken');
 
 router.get('/me/communities/:community_id/current-level', verifyMember, getCurrentLevel);
 router.get('/me/communities/:community_id/up-level-phase', verifyMember, getUpLevelPhase);
 router.post('/me/communities/:community_id/up-level-request', verifyMember, createUpLevelRequest);
-router.get('/me/communities/:community_id/current-up-level-request-id', verifyMember, getCurrentUpLevelRequestId);
+router.get('/me/communities/:community_id/current-tests', verifyMember, getCurrentTests);
 router.post('/me/communities/:community_id/submit-answer', verifyMember, submitAnswer);
 
 // ===================== Cuong ================================
