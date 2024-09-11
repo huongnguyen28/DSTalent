@@ -290,6 +290,8 @@ const updateQuestion = async (req, res) => {
             }
         });
 
+        fs.unlinkSync(file.path);
+
         return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Update question successfully!");
     } catch (error) {
         return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
