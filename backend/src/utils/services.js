@@ -32,8 +32,6 @@ function orMiddleware(middleware1, middleware2) {
 
 const formatFilePath = (fileName) => {
   const path = appRootPath + "\\public\\upload\\" + fileName;
-  console.log(path);
-  console.log(fileName);
   return path;
 };
 
