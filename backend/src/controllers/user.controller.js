@@ -27,12 +27,12 @@ const updateUser = async (req, res) => {
         user.description = req.body.description ? req.body.description : null;
         user.phone = req.body.phone ? req.body.phone : null;
         user.gender = req.body.gender ? req.body.gender : user.gender;
-        user.avatar = req.file ? formatFilePath(req.file.filename) : null;
+        user.avatar = req.file ? formatFilePath(req.file.filename) : req.body.del_avatar === 'false' ? user.avatar : req.body.del_avatar === 'true' ? null : user.avatar;
 
         await user.save();
         const { password, refresh_token, verify_code, ...others } = user.dataValues;
 
-        others.avatar = req.file ? await readAndTransformImageToBase64(user.avatar) : null;
+        others.avatar = others.avatar ? await readAndTransformImageToBase64(user.avatar) : null;
 
         return formatResponse(
             res,
