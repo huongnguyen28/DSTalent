@@ -631,6 +631,107 @@ const updateMemberProfile = async (req, res) => {
     "Update member profile success!"
   );
 };
+const grantRoleInCommunity = async (req, res) => {
+  try {
+    const communityId = req.params.community_id;
+    const memberId = req.params.member_id;
+
+    const member = await Member.findOne({
+      where: {
+        community_id: communityId,
+        user_id: memberId
+      }
+    });
+
+    if (!member) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Member not found in the community!"
+      );
+    }
+
+    if (member.is_admin) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "Member is already an admin!"
+      );
+    }
+
+    await Member.update(
+      { is_admin: true },
+      { where: { community_id: communityId, user_id: memberId } }
+    );
+
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.SUCCESS,
+      "Role granted successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to grant role!"
+    );
+  }
+};
+
+const revokeRoleInCommunity = async (req, res) => {
+  try {
+    const communityId = req.params.community_id;
+    const memberId = req.params.member_id;
+
+    const member = await Member.findOne({
+      where: {
+        community_id: communityId,
+        user_id: memberId
+      }
+    });
+
+    if (!member) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Member not found in the community!"
+      );
+    }
+
+    if (!member.is_admin) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "Member is not an admin!"
+      );
+    }
+
+    await Member.update(
+      { is_admin: false },
+      { where: { community_id: communityId, user_id: memberId } }
+    );
+
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.SUCCESS,
+      "Role revoked successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to revoke role!"
+    );
+  }
+};
 
 module.exports = {
   getCommunityList,
@@ -644,4 +745,6 @@ module.exports = {
   updateCommunity,
   deleteCommunity,
   searchCommunity,
+  grantRoleInCommunity,
+  revokeRoleInCommunity,
 };
