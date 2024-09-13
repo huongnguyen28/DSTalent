@@ -17,7 +17,7 @@ const {
 
 const registerUser = async (req, res) => {
   try {
-    if (!req.body.email || !req.body.full_name || !req.body.password)
+    if (!req.body.email || !req.body.full_name || !req.body.password || !req.body.day_of_birth || !req.body.gender)
       return formatResponse(
         res,
         {},
@@ -42,6 +42,8 @@ const registerUser = async (req, res) => {
       email: req.body.email,
       full_name: req.body.full_name,
       password: hashedPassword,
+      day_of_birth: req.body.day_of_birth,
+      gender: req.body.gender,
       verify_code: verifyCode,
     };
 
@@ -76,7 +78,7 @@ const registerUser = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
   try {
-    if (!req.body.verify_code || !req.body.email)
+    if (!req.body.verify_code || !req.body.email || req.body.is_delete === undefined)
       return formatResponse(
         res,
         {},
@@ -97,7 +99,7 @@ const verifyEmail = async (req, res) => {
       );
     }
 
-    if (user.is_verify)
+    if (!user.verify_code)
       return formatResponse(
         res,
         {},
@@ -112,10 +114,15 @@ const verifyEmail = async (req, res) => {
         STATUS_CODE.BAD_REQUEST,
         "Wrong verify code!"
       );
+    
+    if (req.body.is_delete) {
+      user.verify_code = null;
 
-    user.is_verify = true;
-    user.verify_code = null;
-    await user.save();
+      if (!user.is_verify)
+        user.is_verify = true;
+
+      await user.save();
+    }
 
     return formatResponse(
       res,
@@ -156,54 +163,6 @@ const getVerifyCode = async (req, res) => {
     sendEmail(user.email, verifyCode);
 
     return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Let's verify!");
-  } catch (err) {
-    console.log(err.message);
-    return formatResponse(
-      res,
-      {},
-      STATUS_CODE.INTERNAL_SERVER_ERROR,
-      err.message
-    );
-  }
-};
-
-const supResetPassword = async (req, res) => {
-  try {
-    if (!req.body.verify_code || !req.body.email)
-      return formatResponse(
-        res,
-        {},
-        STATUS_CODE.BAD_REQUEST,
-        "All fields are required!"
-      );
-
-    const verifyCode = req.body.verify_code;
-
-    const user = await User.findOne({ where: { email: req.body.email } });
-
-    if (!user) {
-      return formatResponse(
-        res,
-        {},
-        STATUS_CODE.BAD_REQUEST,
-        "Email not found!"
-      );
-    }
-
-    if (user.verify_code !== verifyCode)
-      return formatResponse(
-        res,
-        {},
-        STATUS_CODE.BAD_REQUEST,
-        "Wrong verify code!"
-      );
-
-    return formatResponse(
-      res,
-      {},
-      STATUS_CODE.CREATED,
-      "Verify code successfully!"
-    );
   } catch (err) {
     console.log(err.message);
     return formatResponse(
@@ -541,5 +500,4 @@ module.exports = {
   verifyEmail,
   getVerifyCode,
   resetPassword,
-  supResetPassword,
 };

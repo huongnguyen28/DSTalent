@@ -7,17 +7,19 @@ const {
   submitBasicTest,
   getBasicTestSubmissions,
   getBasicTests,
+  updateBasicTest,
+  getABasicTest,
 } = require("../controllers/basic_test.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
 const { verifyAdmin } = require("../middlewares/verify-admin");
 
-router.use(verifyToken, verifyMember);
+router.use(verifyToken);
 
 router
-  .route("/:community_id/basic-tests", verifyAdmin)
-  .post(createBasicTest)
-  .get(getBasicTests);
+  .route("/:community_id/basic-tests")
+  .post(verifyMember, verifyAdmin, createBasicTest)
+  .get(verifyMember, verifyAdmin, getBasicTests);
 
 router.get(
   "/:community_id/basic-tests/random",
@@ -25,8 +27,23 @@ router.get(
   getRandomBasicTest
 );
 
+router.get(
+  "/:community_id/basic-tests/:basic_test_id",
+  verifyMember,
+  verifyAdmin,
+  getABasicTest
+);
+
+router.patch(
+  "/:community_id/basic-tests/:basic_test_id",
+  verifyMember,
+  verifyAdmin,
+  updateBasicTest
+);
+
 router.delete(
   "/:community_id/basic-tests/:basic_test_id",
+  verifyMember,
   verifyAdmin,
   deleteBasicTest
 );

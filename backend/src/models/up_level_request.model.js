@@ -35,7 +35,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         defaultValue: 0,
       },
-      num_judge_completed: {
+      num_judge_completed_question: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
+      num_judge_completed_score: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
       },

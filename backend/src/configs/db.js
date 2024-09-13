@@ -146,9 +146,9 @@ db.user.hasMany(db.document_access, {
   foreignKey: "user_id",
 });
 
-// Test created_by refers to users.id
-db.test.belongsTo(db.user, { foreignKey: "created_by" });
-db.user.hasMany(db.test, { foreignKey: "created_by" });
+// Test created_by refers to member.id 
+db.test.belongsTo(db.member, { foreignKey: "created_by" });
+db.member.hasMany(db.test, { foreignKey: "created_by" });
 
 // Test up_level_request_id refers to up_level_request.id
 db.test.belongsTo(db.up_level_request, { foreignKey: "up_level_request_id" });

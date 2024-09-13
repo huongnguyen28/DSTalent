@@ -2,6 +2,7 @@ const router = require("./auth.route");
 const multer = require('multer');
 const {verifyToken} = require("../middlewares/verify-token");
 const storage = require("../configs/multer");
+const {isCandidateOfTest, isJudgeOfTest, isCandiateOrJudgeOfTest} = require("../middlewares/test-middleware");
   
 const upload = multer({ storage });
 
@@ -10,11 +11,15 @@ const {
     downloadAnswer,
     uploadQuestion,
     downloadQuestion,
+    updateQuestion
 } = require("../controllers/up_level.controller");
 
-router.post("/:test_id/upload-answer", upload.single('file'), verifyToken, uploadAnswer);
-router.get("/:test_id/download-answer", downloadAnswer);
-router.post("/:test_id/upload-question", upload.single('file'), verifyToken, uploadQuestion);
-router.get("/:test_id/download-question", downloadQuestion);
+router.use(verifyToken);
+
+router.post("/:test_id/upload-question", upload.single('file'), isJudgeOfTest, uploadQuestion);
+router.patch("/:test_id/update-question", upload.single('file'), isJudgeOfTest, updateQuestion);
+router.get("/:test_id/download-question", isCandiateOrJudgeOfTest, downloadQuestion);
+router.post("/:test_id/upload-answer", upload.single('file'), isCandidateOfTest, uploadAnswer);
+router.get("/:test_id/download-answer", isCandiateOrJudgeOfTest , downloadAnswer);
 
 module.exports = router;

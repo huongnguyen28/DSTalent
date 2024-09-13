@@ -31,8 +31,6 @@ const {
 
 const formatFilePath = (fileName) => {
   const path = appRootPath + "\\public\\upload\\" + fileName;
-  console.log(path);
-  console.log(fileName);
   return path;
 };
 
