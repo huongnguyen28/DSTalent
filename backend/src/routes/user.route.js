@@ -35,8 +35,7 @@ const {
     getCurrentTests,
     submitAnswer,
     listPendingForJudge,
-    listPendingForTest,
-    getCurrentTests
+    listPendingForTest
 } = require('../controllers/up_level.controller');
 const { verify } = require('jsonwebtoken');
 

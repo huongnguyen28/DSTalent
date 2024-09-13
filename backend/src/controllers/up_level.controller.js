@@ -470,9 +470,6 @@ const uploadScore = async (req, res) => {
     }
 };
 
-
-const { Op } = require('sequelize'); 
-
 const listPendingForJudge = async (req, res) => {
     try {
       const userId = req.user.user_id; 
