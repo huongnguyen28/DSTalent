@@ -20,6 +20,7 @@ const verifyAdmin = async (req, res, next) => {
   next();
 };
 
+
 // const verifyAdmin = async (req, res, next) => {
 //   // First, call the verifyMember middleware
 //   await verifyMember(req, res, async (err) => {
