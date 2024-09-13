@@ -7,8 +7,7 @@ const {loginUser,
     verifyEmail, 
     getVerifyCode, 
     resetPassword,      
-    registerUser,
-    supResetPassword
+    registerUser
 } = require("../controllers/auth.controller");
 
 router.post("/login", loginUser);
@@ -18,7 +17,6 @@ router.post("/logout", logoutUser);
 router.post("/email/verify", verifyEmail);
 router.post("/email/code", getVerifyCode);
 router.post("/password/reset", resetPassword);
-router.post("/password/reset/sup", supResetPassword);
 router.get("/oauth/google", oauthGoogle);
 router.get("/tests", async (req, res) => {
     return res.json({message: "Hello from auth route"});

@@ -3,6 +3,7 @@ const db = require("../configs/db");
 const { STATUS_CODE, formatResponse } = require("../utils/services");
 const { get } = require("http");
 const BasicTest = db.basic_test;
+const BasicTestSubmit = db.basic_test_submit;
 const Community = db.community;
 const User = db.user;
 
@@ -168,6 +169,7 @@ const submitBasicTest = async (req, res) => {
   try {
     const { basic_test_id, community_id } = req.params; // Get the test ID from request parameters
     const { user_id } = req.user; // Get the user ID from the request
+    const { content, score } = req.body; // Get the submission content
 
     // Find the basic test by its ID
     const basicTest = await BasicTest.findByPk(basic_test_id);
@@ -199,13 +201,16 @@ const submitBasicTest = async (req, res) => {
     await BasicTestSubmit.create({
       basic_test_id: basic_test_id,
       user_id: user_id,
+      content: content,
+      score: score,
+      created_at: Date.now(),
     });
 
     // Return success response
     return formatResponse(
       res,
       {},
-      STATUS_CODE.SUCCESS,
+      STATUS_CODE.CREATED,
       "Basic test submitted successfully"
     );
   } catch (error) {
@@ -259,6 +264,68 @@ const getBasicTestSubmissions = async (req, res) => {
   }
 };
 
+const updateBasicTest = async (req, res) => {
+  try {
+    const basicTestId = req.params.basic_test_id;
+    const { description, content } = req.body;
+
+    const existingBasicTest = await BasicTest.findByPk(basicTestId);
+
+    await BasicTest.update(
+      {
+        description: description || existingBasicTest.description,
+        content: content || existingBasicTest.content,
+      },
+      { where: { basic_test_id: basicTestId } }
+    );
+
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.SUCCESS,
+      "Basic test updated successfully"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Error updating basic test"
+    );
+  }
+};
+
+const getABasicTest = async (req, res) => {
+  try {
+    const basicTestId = req.params.basic_test_id;
+
+    const basicTest = await BasicTest.findByPk(basicTestId);
+
+    if (!basicTest) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Basic test not found"
+      );
+    }
+
+    return formatResponse(
+      res,
+      basicTest,
+      STATUS_CODE.SUCCESS,
+      "Successfully fetched basic test"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Error fetching basic test"
+    );
+  }
+};
+
 module.exports = {
   getRandomBasicTest,
   createBasicTest,
@@ -266,4 +333,6 @@ module.exports = {
   deleteBasicTest,
   submitBasicTest,
   getBasicTestSubmissions,
+  updateBasicTest,
+  getABasicTest,
 };

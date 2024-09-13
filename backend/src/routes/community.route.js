@@ -12,8 +12,6 @@ const {
   updateCommunity,
   deleteCommunity,
   searchCommunity,
-  grantRoleInCommunity,
-  revokeRoleInCommunity,
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
@@ -28,10 +26,10 @@ router.route("/")
 
 router.get("/search", searchCommunity);
 
-router.route("/:community_id", verifyMember)
-  .get(getCommunityDetail)
-  .patch(verifyAdmin, updateCommunity)
-  .delete(verifyAdmin, deleteCommunity);
+router.route("/:community_id")
+  .get(verifyMember, getCommunityDetail)
+  .patch(verifyMember, verifyAdmin, updateCommunity)
+  .delete(verifyMember, verifyAdmin, deleteCommunity);
 
 router.get("/:community_id/members", verifyMember, getCommunityMembers);
 
@@ -42,6 +40,8 @@ router.post("/:community_id/leave", verifyMember, leaveCommunity);
 const { uploadDocument } = require("../controllers/document.controller");
 router.post("/:community_id/documents", verifyMember, uploadDocument);
 
+const { searchDocument } = require("../controllers/document.controller");
+router.get("/:community_id/documents/search", searchDocument);
 
 router
   .route("/:community_id/members/:member_id")
@@ -50,7 +50,9 @@ router
 
 router.use("/:community_id/chats", verifyMember, chatRoute);
 
-router.patch("/:community_id/members/:member_id/grant", verifyMember, verifyAdmin, grantRoleInCommunity);
-router.patch("/:community_id/members/:member_id/revoke", verifyMember, verifyAdmin, revokeRoleInCommunity);
+const { listLevelUpRequests, agreedToJudge } = require("../controllers/up_level.controller");
+router.get("/:community_id/judge-requests", verifyMember, listLevelUpRequests);
+router.get("/:community_id/up-level-requests/:up_level_request_id/agree", verifyMember, agreedToJudge);
+
 
 module.exports = router;

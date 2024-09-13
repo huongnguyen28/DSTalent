@@ -6,6 +6,8 @@ const {
     getUser,
     useWallet,
     createWallet,
+    getWalletList,
+    chooseWallet
 } = require("../controllers/user.controller");
 const {verifyToken} = require("../middlewares/verify-token");
 const storage = require("../configs/multer");
@@ -14,10 +16,14 @@ const upload = multer({ storage });
 
 router.use(verifyToken);
 
-router.patch("/me", upload.single('file'), updateUser);
-router.get("/:user_id", getUser);
+// ======================== Kiệt ========================
+
+router.patch("/me", upload.single('avatar'), updateUser);
+router.get("/:user_id/profile", getUser);
+router.post("/wallet/create", createWallet);
+router.post("/wallet/choose", chooseWallet);
 router.post("/wallet", useWallet);
-router.post("/wallet/create-new", createWallet);
+router.get("/wallet", getWalletList);
 
 // ======================== Tín ========================
 const { verifyMember } = require('../middlewares/verify-member');
@@ -25,8 +31,8 @@ const { verifyMember } = require('../middlewares/verify-member');
 const {
     getUpLevelPhase,
     createUpLevelRequest,
-    getCurrentUpLevelRequestId,
     getCurrentLevel,
+    getCurrentTests,
     submitAnswer,
     listPendingForJudge,
     listPendingForTest,
@@ -36,7 +42,7 @@ const { verify } = require('jsonwebtoken');
 router.get('/me/communities/:community_id/current-level', verifyMember, getCurrentLevel);
 router.get('/me/communities/:community_id/up-level-phase', verifyMember, getUpLevelPhase);
 router.post('/me/communities/:community_id/up-level-request', verifyMember, createUpLevelRequest);
-router.get('/me/communities/:community_id/current-up-level-request-id', verifyMember, getCurrentUpLevelRequestId);
+router.get('/me/communities/:community_id/current-tests', verifyMember, getCurrentTests);
 router.post('/me/communities/:community_id/submit-answer', verifyMember, submitAnswer);
 
 // ===================== Vuong ================================

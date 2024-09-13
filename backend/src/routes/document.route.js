@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   deleteDocument,
   searchDocument,
+  updateDocument,
   viewSpecificDocument,
 } = require("../controllers/document.controller");
 const { verifyToken } = require("../middlewares/verify-token");
@@ -13,7 +14,6 @@ router.use(verifyToken);
 router.route("/:document_id")
   .delete(verifyDocumentAccess, deleteDocument)
   .get(viewSpecificDocument)
-
-router.get("/search/communities/:community_id", searchDocument);
+  .patch(verifyDocumentAccess, updateDocument);
 
 module.exports = router;
