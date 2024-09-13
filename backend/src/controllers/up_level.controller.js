@@ -264,6 +264,121 @@ const downloadQuestion = async (req, res) => {
     }
 }
 
+const uploadScore = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const testId = req.params.test_id;
+
+        const test = await Test.findOne({ where: { test_id: testId } });
+
+        if (!test || test.created_by !== userId) {
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You are not authorized to upload score for this test.");
+        }
+
+        const { score } = req.body; 
+
+        if (score === undefined || isNaN(score)) {
+            return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "Score is required and must be a number!");
+        }
+
+        await Test.update(
+            { score: parseFloat(score) }, 
+            { where: { test_id: testId } }
+        );
+
+        return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload score successfully!");
+    } catch (error) {
+        return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
+    }
+};
+
+
+const { Op } = require('sequelize'); 
+
+const listPendingForJudge = async (req, res) => {
+    try {
+      const userId = req.user.user_id; 
+      const communityId = req.params.community_id;
+  
+      const pendingForJudgeTests = await Test.findAll({
+        include: [
+          {
+            model: UpLevelRequest, 
+            required: true, 
+            include: [
+              {
+                model: Member, 
+                required: true, 
+                where: { community_id: communityId }, 
+              }
+            ]
+          }
+        ],
+        where: {
+          created_by: userId,
+          question_file: { [Op.not]: null },
+          answer_file: { [Op.not]: null }, // Không rỗng
+          score: { [Op.or]: [0, null] },
+        }
+      });
+  
+      return formatResponse(
+        res,
+        pendingForJudgeTests,
+        STATUS_CODE.SUCCESS,
+        "List of tests pending for judge retrieved successfully."
+      );
+    } catch (error) {
+      return formatResponse(
+        res,
+        error,
+        STATUS_CODE.INTERNAL_SERVER_ERROR,
+        "Failed to retrieve pending tests for judge."
+      );
+    }
+  };
+
+  const listPendingForTest = async (req, res) => {
+    try {
+      const userId = req.user.user_id; 
+      const communityId = req.params.community_id;
+ 
+      const pendingForTestTests = await Test.findAll({
+        include: [
+          {
+            model: UpLevelRequest, 
+            required: true, 
+            include: [
+              {
+                model: Member, 
+                required: true, 
+                where: { community_id: communityId }, 
+              }
+            ]
+          }
+        ],
+        where: {
+          created_by: userId,
+          question_file: null
+        }
+      });
+  
+      return formatResponse(
+        res,
+        pendingForTestTests,
+        STATUS_CODE.SUCCESS,
+        "List of tests pending for test retrieved successfully."
+      );
+    } catch (error) {
+      return formatResponse(
+        res,
+        error,
+        STATUS_CODE.INTERNAL_SERVER_ERROR,
+        "Failed to retrieve pending tests for test."
+      );
+    }
+  };
+
 module.exports = {
     getUpLevelPhase,
     createUpLevelRequest,
@@ -275,6 +390,9 @@ module.exports = {
     downloadAnswer,
     uploadQuestion,
     downloadQuestion,
+    uploadScore,
+    listPendingForJudge,
+    listPendingForTest,
 }
 
 // ===================================================

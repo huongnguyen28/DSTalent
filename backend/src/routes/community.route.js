@@ -12,6 +12,8 @@ const {
   updateCommunity,
   deleteCommunity,
   searchCommunity,
+  grantRoleInCommunity,
+  revokeRoleInCommunity,
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
@@ -47,5 +49,8 @@ router
   .put(verifyMember, updateMemberProfile);
 
 router.use("/:community_id/chats", verifyMember, chatRoute);
+
+router.patch("/:community_id/members/:member_id/grant", verifyMember, verifyAdmin, grantRoleInCommunity);
+router.patch("/:community_id/members/:member_id/revoke", verifyMember, verifyAdmin, revokeRoleInCommunity);
 
 module.exports = router;
