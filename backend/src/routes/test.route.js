@@ -13,6 +13,7 @@ const {
     downloadQuestion,
     updateQuestion,
     uploadScore,
+    updateQuestion
 } = require("../controllers/up_level.controller");
 
 router.use(verifyToken);

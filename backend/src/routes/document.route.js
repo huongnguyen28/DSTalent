@@ -5,6 +5,7 @@ const {
   searchDocument,
   updateDocument,
   viewSpecificDocument,
+  updateDocument
 } = require("../controllers/document.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyDocumentAccess } = require("../middlewares/verify-document-access");
