@@ -8,6 +8,12 @@ const verifyMember = async (req, res, next) => {
   const userId = userInReq.user_id;
   const communityId = req.params.community_id;
 
+  // return formatResponse(res, {"communityId": communityId,
+  //   "userId": userId},
+  //   STATUS_CODE.SUCCESS,
+  //   "User is a member of this community!"
+  // );
+
   const communityInDb = await Community.findOne({
     where: { community_id: communityId },
   });
@@ -24,6 +30,7 @@ const verifyMember = async (req, res, next) => {
   const memberInDb = await Member.findOne({
     where: { community_id: communityId, user_id: userId },
   });
+
   if (memberInDb === null) {
     return formatResponse(
       res,
@@ -43,6 +50,7 @@ const verifyMember = async (req, res, next) => {
     );
 
   req.member = member;
+  // console.log(member);
   next();
 };
 

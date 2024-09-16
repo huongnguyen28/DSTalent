@@ -25,13 +25,22 @@ const registerUser = async (req, res) => {
         "All fields are required!"
       );
     const user = await User.findOne({ where: { email: req.body.email } });
-    if (user)
-      return formatResponse(
-        res,
-        {},
-        STATUS_CODE.BAD_REQUEST,
-        "User already exists!"
-      );
+    if (user) {
+      if (user.is_verify)
+        return formatResponse(
+          res,
+          {},
+          STATUS_CODE.BAD_REQUEST,
+          "User already exists and has been verified!"
+        );
+      else
+        return formatResponse(
+          res,
+          {},
+          STATUS_CODE.BAD_REQUEST,
+          "Not verified yet!"
+        );
+    }
 
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(req.body.password, salt);
@@ -247,16 +256,8 @@ const loginUser = async (req, res) => {
         STATUS_CODE.NOT_FOUND,
         "User does not exists!"
       );
-
-    if (!user.is_verify)
-      return formatResponse(
-        res,
-        {},
-        STATUS_CODE.BAD_REQUEST,
-        "You must verify your email!"
-      );
-
-    const match = await bcrypt.compare(req.body.password, user.password);
+    
+      const match = await bcrypt.compare(req.body.password, user.password);
 
     if (!match)
       return formatResponse(
@@ -264,6 +265,14 @@ const loginUser = async (req, res) => {
         {},
         STATUS_CODE.BAD_REQUEST,
         "Incorrect password!"
+      );
+
+    if (!user.is_verify)
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "You must verify your email!"
       );
 
     const accessToken = generateToken(

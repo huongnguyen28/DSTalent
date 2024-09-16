@@ -387,6 +387,67 @@ const searchDocument = async (req, res) => {
   }
 };
 
+const viewSpecificDocument = async (req, res) => {
+  try {
+    const documentId = req.params.document_id;
+    const userId = req.user.user_id; 
+
+    const document = await Document.findOne({ where: { document_id: documentId } });
+
+    if (!document) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Document not found!"
+      );
+    }
+
+    if (document.privacy === 'public' || document.uploaded_by === userId) {
+      return formatResponse(
+        res,
+        document,
+        STATUS_CODE.SUCCESS,
+        "Document retrieved successfully."
+      );
+    }
+
+    else {
+      const documentAccess = await Document_Access.findOne({
+        where: {
+          document_id: documentId,
+          user_id: userId,
+          expired_date: { [Op.lte]: new Date() }, // Ensure access has not expired
+        }
+      });
+
+      if (!documentAccess) {
+        return formatResponse(
+          res,
+          {},
+          STATUS_CODE.FORBIDDEN,
+          "Access denied or document access has expired!"
+        );
+      }
+    }
+
+    return formatResponse(
+      res,
+      document,
+      STATUS_CODE.SUCCESS,
+      "Document retrieved successfully."
+    );
+
+  } catch (error) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
 const updateDocument = async(req, res) => {
   try {
     if(req.document.document_access_level !== 2) {
@@ -490,5 +551,6 @@ module.exports = {
   uploadDocument,
   updateDocumentAccessLevel,
   searchDocument,
+  viewSpecificDocument,
   updateDocument
 }
