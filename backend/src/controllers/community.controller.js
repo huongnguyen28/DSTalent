@@ -17,6 +17,7 @@ const getCommunityList = async (req, res) => {
         "name",
         "owner",
         "rating",
+        "privacy",
         [fn("COUNT", col("members.member_id")), "member_count"],
       ],
       include: [
@@ -680,8 +681,8 @@ const grantRoleInCommunity = async (req, res) => {
     const member = await Member.findOne({
       where: {
         community_id: communityId,
-        user_id: memberId
-      }
+        user_id: memberId,
+      },
     });
 
     if (!member) {
@@ -731,8 +732,8 @@ const revokeRoleInCommunity = async (req, res) => {
     const member = await Member.findOne({
       where: {
         community_id: communityId,
-        user_id: memberId
-      }
+        user_id: memberId,
+      },
     });
 
     if (!member) {
