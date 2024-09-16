@@ -5,28 +5,69 @@ const Document = db.document;
 const User = db.user;
 const Member = db.member;
 const { STATUS_CODE, formatResponse } = require("../utils/services");
-const { Op, Sequelize } = require("sequelize");
+const { Op, fn, col, Sequelize } = require("sequelize");
 const Tag = db.tag;
 const Community_Tag = db.community_tag;
 
 const getCommunityList = async (req, res) => {
   try {
     const communities = await Community.findAll({
-      attributes: ["community_id", "name", "owner"],
-      order: [["createdAt"]],
+      attributes: [
+        "community_id",
+        "name",
+        "owner",
+        "rating",
+        [fn("COUNT", col("members.member_id")), "member_count"],
+      ],
+      include: [
+        {
+          model: Member,
+          as: "members",
+          attributes: [], // We only want to count members, no need to return member data
+        },
+      ],
+      group: ["community.community_id"],
+      order: [["createdAt", "DESC"]],
     });
-    const owner_communities = communities.filter(
-      (community) => community.owner === req.user.user_id
-    );
-    const not_owner_communities = communities.filter(
-      (community) => community.owner !== req.user.user_id
+
+    const communityData = await Promise.all(
+      communities.map(async (community) => {
+        let status = "not_joined"; // Default status
+
+        // Check if the current user is the owner
+        if (community.owner === req.user.user_id) {
+          status = "owner";
+        } else {
+          // Check if the user is a member of the community and has joined
+          const member = await Member.findOne({
+            where: {
+              community_id: community.community_id,
+              user_id: req.user.user_id,
+              is_joined: true,
+            },
+          });
+
+          if (member) {
+            status = "joined";
+          }
+        }
+
+        return {
+          ...community.get(), // Spread community data
+          status, // Add status field
+        };
+      })
     );
 
-    const data = [...owner_communities, ...not_owner_communities];
+    // Sort the communities based on the custom status order: owner (0), joined (1), not_joined (2)
+    const sortedData = communityData.sort((a, b) => {
+      const statusOrder = { owner: 0, joined: 1, not_joined: 2 };
+      return statusOrder[a.status] - statusOrder[b.status];
+    });
 
     return formatResponse(
       res,
-      { community_list: data },
+      { community_list: sortedData },
       STATUS_CODE.SUCCESS,
       "Success!"
     );
@@ -631,6 +672,109 @@ const updateMemberProfile = async (req, res) => {
     "Update member profile success!"
   );
 };
+const grantRoleInCommunity = async (req, res) => {
+  try {
+    const communityId = req.params.community_id;
+    const memberId = req.params.member_id;
+
+    const member = await Member.findOne({
+      where: {
+        community_id: communityId,
+        user_id: memberId
+      }
+    });
+
+    if (!member) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Member not found in the community!"
+      );
+    }
+
+    if (member.is_admin) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "Member is already an admin!"
+      );
+    }
+
+    await Member.update(
+      { is_admin: true },
+      { where: { community_id: communityId, user_id: memberId } }
+    );
+
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.SUCCESS,
+      "Role granted successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to grant role!"
+    );
+  }
+};
+
+const revokeRoleInCommunity = async (req, res) => {
+  try {
+    const communityId = req.params.community_id;
+    const memberId = req.params.member_id;
+
+    const member = await Member.findOne({
+      where: {
+        community_id: communityId,
+        user_id: memberId
+      }
+    });
+
+    if (!member) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Member not found in the community!"
+      );
+    }
+
+    if (!member.is_admin) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "Member is not an admin!"
+      );
+    }
+
+    await Member.update(
+      { is_admin: false },
+      { where: { community_id: communityId, user_id: memberId } }
+    );
+
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.SUCCESS,
+      "Role revoked successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to revoke role!"
+    );
+  }
+};
+
+// rate community by member
 
 module.exports = {
   getCommunityList,
@@ -644,4 +788,6 @@ module.exports = {
   updateCommunity,
   deleteCommunity,
   searchCommunity,
+  grantRoleInCommunity,
+  revokeRoleInCommunity,
 };

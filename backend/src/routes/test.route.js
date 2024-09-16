@@ -10,7 +10,10 @@ const {
     uploadAnswer,
     downloadAnswer,
     uploadQuestion,
-    downloadQuestion,} = require("../controllers/up_level.controller");
+    downloadQuestion,
+    updateQuestion,
+    uploadScore,
+} = require("../controllers/up_level.controller");
 
 router.use(verifyToken);
 
@@ -18,5 +21,6 @@ router.post("/:test_id/upload-question", upload.single('file'), isJudgeOfTest, u
 router.get("/:test_id/download-question", isCandiateOrJudgeOfTest, downloadQuestion);
 router.post("/:test_id/upload-answer", upload.single('file'), isCandidateOfTest, uploadAnswer);
 router.get("/:test_id/download-answer", isCandiateOrJudgeOfTest , downloadAnswer);
+router.post("/:test_id/upload-score", verifyToken, uploadScore);
 
 module.exports = router;
