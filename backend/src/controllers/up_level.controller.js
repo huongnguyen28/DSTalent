@@ -552,7 +552,6 @@ module.exports = {
     downloadQuestion,
     listLevelUpRequests,
     agreedToJudge,
-    updateQuestion,
     uploadScore,
     listPendingForJudge,
     listPendingForTest,
