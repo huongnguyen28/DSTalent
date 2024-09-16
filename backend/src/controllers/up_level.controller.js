@@ -168,13 +168,24 @@ const submitAnswer = async (req, res) => {
 const uploadAnswer = async (req, res) => {
     try {
         const file = req.file;
+        const test = await Test.findByPk(req.params.test_id);
+        const upLevelRequest = await UpLevelRequest.findByPk(test.up_level_request_id);
+        const member = await Member.findByPk(upLevelRequest.member_id);
+        if (member.up_level_phase != 4) {
+            fs.unlinkSync(file.path);
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot upload answer now!");
+        }
+        let isUpdating = false;
+
+        if (test.question_file) {
+           isUpdating = true;
+        }
 
         if (!file) {
             return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
         }
 
         const fileData = fs.readFileSync(file.path);
-
 
         await Test.update({
             answer_file: fileData,
@@ -214,12 +225,20 @@ const downloadAnswer = async (req, res) => {
 
 const uploadQuestion = async (req, res) => {
     try {
+        const file = req.file;
         const test = await Test.findByPk(req.params.test_id);
-        if (test.question_file) {
-            return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "Question has already been uploaded!");
+        const upLevelRequest = await UpLevelRequest.findByPk(test.up_level_request_id);
+        const member = await Member.findByPk(upLevelRequest.member_id);
+        if (member.up_level_phase != 4) {
+            fs.unlinkSync(file.path);
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot upload answer now!");
         }
 
-        const file = req.file;
+        let isUpdating = false;
+
+        if (test.question_file) {
+           isUpdating = true;
+        }
 
         if (!file) {
             return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
@@ -235,64 +254,31 @@ const uploadQuestion = async (req, res) => {
             }
         });
 
-        await UpLevelRequest.update({
-            num_judge_completed_question: db.sequelize.literal('num_judge_completed_question + 1')
-        }, {
-            where: {
-                up_level_request_id: test.up_level_request_id
-            }
-        });
-
-        const up_level_request = await UpLevelRequest.findByPk(test.up_level_request_id);
-
-        if (up_level_request.num_judge_completed_question == 3) {
-            await Member.update({
-                up_level_phase: 4,
+        if (!isUpdating) {
+            await UpLevelRequest.update({
+                num_judge_completed_question: db.sequelize.literal('num_judge_completed_question + 1')
             }, {
                 where: {
-                    current_up_level_request_id: up_level_request.up_level_request_id
+                    up_level_request_id: test.up_level_request_id
                 }
             });
+    
+            const upLevelRequest = await UpLevelRequest.findByPk(test.up_level_request_id);
+    
+            if (upLevelRequest.num_judge_completed_question == 3) {
+                await Member.update({
+                    up_level_phase: 4,
+                }, {
+                    where: {
+                        current_up_level_request_id: upLevelRequest.up_level_request_id
+                    }
+                });
+            }
         }
 
         fs.unlinkSync(file.path);
 
         return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload question successfully!");
-    } catch (error) {
-        return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
-    }
-}
-
-const updateQuestion = async (req, res) => {
-    try {
-        const test = await Test.findByPk(req.params.test_id);
-        if (!test) {
-            return formatResponse(res, {}, STATUS_CODE.NOT_FOUND, "Test not found!");
-        }
-
-        if (!test.question_file) {
-            return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "Question has not been uploaded!");
-        }
-
-        const file = req.file;
-
-        if (!file) {
-            return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
-        }
-
-        const fileData = fs.readFileSync(file.path);
-
-        await Test.update({
-            question_file: fileData,
-        }, {
-            where: {
-                test_id: req.params.test_id,
-            }
-        });
-
-        fs.unlinkSync(file.path);
-
-        return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Update question successfully!");
     } catch (error) {
         return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
     }
@@ -570,6 +556,7 @@ module.exports = {
     uploadScore,
     listPendingForJudge,
     listPendingForTest,
+
 }
 
 // ===================================================
