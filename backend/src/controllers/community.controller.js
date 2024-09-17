@@ -325,7 +325,13 @@ const searchCommunity = async (req, res) => {
         where: {
           [Op.and]: [
             {
-              [Op.or]: [{ privacy: "public" }, { owner: userID }],
+              [Op.or]: [
+                { privacy: "public" }, 
+                { owner: userID }, 
+                Sequelize.literal(
+                  `EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)`
+                )
+              ],
             },
             {
               is_active: true,
@@ -344,6 +350,13 @@ const searchCommunity = async (req, res) => {
           [
             Sequelize.literal(
               `CASE WHEN owner = ${userID} THEN privacy ELSE NULL END`
+            ),
+            "DESC",
+          ],
+          [
+            Sequelize.literal(
+              `CASE WHEN owner != ${userID} THEN EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)
+              ELSE NULL END`
             ),
             "DESC",
           ],
@@ -418,7 +431,13 @@ const searchCommunity = async (req, res) => {
             {
               [Op.and]: [
                 {
-                  [Op.or]: [{ privacy: "public" }, { owner: userID }],
+                  [Op.or]: [
+                    { privacy: "public" }, 
+                    { owner: userID }, 
+                    Sequelize.literal(
+                      `EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)`
+                    )
+                  ],
                 },
                 {
                   is_active: true,
