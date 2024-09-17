@@ -5,28 +5,74 @@ const Document = db.document;
 const User = db.user;
 const Member = db.member;
 const { STATUS_CODE, formatResponse } = require("../utils/services");
-const { Op, Sequelize } = require("sequelize");
+const { Op, fn, col, Sequelize } = require("sequelize");
 const Tag = db.tag;
 const Community_Tag = db.community_tag;
 
 const getCommunityList = async (req, res) => {
   try {
     const communities = await Community.findAll({
-      attributes: ["community_id", "name", "owner"],
-      order: [["createdAt"]],
+      attributes: [
+        "community_id",
+        "name",
+        "owner",
+        "rating",
+        "privacy",
+        "cover_image",
+        [fn("COUNT", col("members.member_id")), "member_count"],
+      ],
+      include: [
+        {
+          model: Member,
+          as: "members",
+          attributes: [], // We only want to count members, no need to return member data
+        },
+      ],
+      group: ["community.community_id"],
+      order: [["createdAt", "DESC"]],
     });
-    const owner_communities = communities.filter(
-      (community) => community.owner === req.user.user_id
-    );
-    const not_owner_communities = communities.filter(
-      (community) => community.owner !== req.user.user_id
+
+    const communityData = await Promise.all(
+      communities.map(async (community) => {
+        let status = "Join"; // Default status
+
+        // Check if the current user is the owner
+        if (community.owner === req.user.user_id) {
+          status = "Owner";
+        } else {
+          // Check if the user is a member of the community and has joined
+          const member = await Member.findOne({
+            where: {
+              community_id: community.community_id,
+              user_id: req.user.user_id,
+              is_joined: true,
+            },
+          });
+
+          if (member) {
+            status = "Joined";
+          }
+        }
+        privacy = community.privacy;
+        privacy = privacy.charAt(0).toUpperCase() + privacy.slice(1);
+
+        return {
+          ...community.get(), // Spread community data
+          status, // Add status field
+          privacy,
+        };
+      })
     );
 
-    const data = [...owner_communities, ...not_owner_communities];
+    // Sort the communities based on the custom status order: owner (0), joined (1), not_joined (2)
+    const sortedData = communityData.sort((a, b) => {
+      const statusOrder = { owner: 0, joined: 1, not_joined: 2 };
+      return statusOrder[a.status] - statusOrder[b.status];
+    });
 
     return formatResponse(
       res,
-      { community_list: data },
+      { community_list: sortedData },
       STATUS_CODE.SUCCESS,
       "Success!"
     );
@@ -653,8 +699,8 @@ const grantRoleInCommunity = async (req, res) => {
     const member = await Member.findOne({
       where: {
         community_id: communityId,
-        user_id: memberId
-      }
+        user_id: memberId,
+      },
     });
 
     if (!member) {
@@ -704,8 +750,8 @@ const revokeRoleInCommunity = async (req, res) => {
     const member = await Member.findOne({
       where: {
         community_id: communityId,
-        user_id: memberId
-      }
+        user_id: memberId,
+      },
     });
 
     if (!member) {
@@ -746,6 +792,8 @@ const revokeRoleInCommunity = async (req, res) => {
     );
   }
 };
+
+// rate community by member
 
 module.exports = {
   getCommunityList,
