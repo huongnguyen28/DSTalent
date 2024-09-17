@@ -18,6 +18,7 @@ const getCommunityList = async (req, res) => {
         "owner",
         "rating",
         "privacy",
+        "cover_image",
         [fn("COUNT", col("members.member_id")), "member_count"],
       ],
       include: [
@@ -33,11 +34,11 @@ const getCommunityList = async (req, res) => {
 
     const communityData = await Promise.all(
       communities.map(async (community) => {
-        let status = "not_joined"; // Default status
+        let status = "Join"; // Default status
 
         // Check if the current user is the owner
         if (community.owner === req.user.user_id) {
-          status = "owner";
+          status = "Owner";
         } else {
           // Check if the user is a member of the community and has joined
           const member = await Member.findOne({
@@ -49,13 +50,16 @@ const getCommunityList = async (req, res) => {
           });
 
           if (member) {
-            status = "joined";
+            status = "Joined";
           }
         }
+        privacy = community.privacy;
+        privacy = privacy.charAt(0).toUpperCase() + privacy.slice(1);
 
         return {
           ...community.get(), // Spread community data
           status, // Add status field
+          privacy,
         };
       })
     );
