@@ -467,6 +467,7 @@ const updateDocument = async(req, res) => {
     );
 
     const {document_name, price, access_days, full_content_path, preview_content_path, description, privacy, tags} = req.body;
+
     let modifed_tags = false;
 
     if (typeof tags !== 'undefined') {
@@ -495,28 +496,36 @@ const updateDocument = async(req, res) => {
         ignoreDuplicates: true
       });
     }
-    
-    const updatedDocument = await Document.update(
-      {
-        document_name: document_name || existingDocument.document_name,
-        price: price || existingDocument.price,
-        access_days: access_days || existingDocument.access_days,
-        full_content_path: full_content_path || existingDocument.full_content_path,
-        preview_content_path: preview_content_path || existingDocument.preview_content_path,
-        description: description || existingDocument.description,
-        privacy: privacy || existingDocument.privacy
-      },
-      {
-        where: { document_id: documentId },
-      }
-    );
 
-    if (updatedDocument[0] === 0 && !modifed_tags) { 
+    function hasChanges(newData, oldData) {
+      return Object.keys(newData).some(key => 
+        newData[key] !== undefined && newData[key] !== oldData[key]
+      );
+    } 
+
+    const changes = {
+      document_name,
+      price,
+      access_days,
+      full_content_path,
+      preview_content_path,
+      description,
+      privacy
+    };
+
+    if (!hasChanges(changes, existingDocument) && !modifed_tags) { 
       return formatResponse(
         res,
         {},
         STATUS_CODE.NOT_MODIFIED,
         "No changes were made!"
+      );
+    }
+
+    if(hasChanges(changes, existingDocument)) {
+      await Document.update(
+        changes,
+        { where: { document_id: documentId } }
       );
     }
 

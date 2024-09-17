@@ -157,26 +157,36 @@ const updateCommunity = async (req, res) => {
       });
     }
 
-    const updatedCommunity = await Community.update(
-      {
-        name: name || existingCommunity.name,
-        description: description || existingCommunity.description,
-        privacy: privacy || existingCommunity.privacy,
-        cover_image: cover_image || existingCommunity.cover_image,
-        contact_email: contact_email || existingCommunity.contact_email,
-        contact_phone: contact_phone || existingCommunity.contact_phone,
-      },
-      {
-        where: { community_id: communityId },
-      }
-    );
+    function hasChanges(newData, oldData) {
+      return Object.keys(newData).some(key => 
+        newData[key] !== undefined && newData[key] !== oldData[key]
+      );
+    } 
 
-    if (updatedCommunity[0] === 0 && !modifed_tags) {
+    const changes = {
+      name,
+      description,
+      privacy,
+      cover_image,
+      contact_email,
+      contact_phone
+    }
+    
+    if(!hasChanges(changes, existingCommunity) && !modifed_tags) {
       return formatResponse(
         res,
         {},
         STATUS_CODE.NOT_MODIFIED,
-        "No changes were made!"
+        "No changes was made!"
+      );
+    }
+
+    if(hasChanges(changes, existingCommunity)) {
+      await Community.update(
+        changes,
+        {
+          where: { community_id: communityId }
+        }
       );
     }
 
@@ -251,7 +261,7 @@ const searchCommunity = async (req, res) => {
           "is_joined",
         ],
       ],
-      exclude: ["owner", "is_active", "updatedAt", "community_id"],
+      exclude: ["is_active", "updatedAt", "community_id"],
     };
     const include = [
       {
@@ -389,8 +399,12 @@ const searchCommunity = async (req, res) => {
       totalPage: totalPage,
       hasNext: page < totalPage,
     };
+    
     const data = {
-      communities: communities.rows,
+      communities: communities.rows.map(community => {
+        const { owner, ...otherAttributes } = community.get({ plain: true });
+        return otherAttributes;
+      }),
       pagination,
     };
     return formatResponse(
