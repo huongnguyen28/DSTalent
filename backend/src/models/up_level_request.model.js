@@ -15,14 +15,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         defaultValue: 0,
       },
-      created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
-      },
-      agreed_judge: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
-      },
       score: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
