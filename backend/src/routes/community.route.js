@@ -12,6 +12,7 @@ const {
   updateCommunity,
   deleteCommunity,
   searchCommunity,
+  getCommunityAdmins,
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
@@ -32,6 +33,8 @@ router.route("/:community_id")
   .delete(verifyMember, verifyAdmin, deleteCommunity);
 
 router.get("/:community_id/members", verifyMember, getCommunityMembers);
+
+router.get("/:community_id/admins", getCommunityAdmins);
 
 router.post("/:community_id/join", joinCommunity);
 
