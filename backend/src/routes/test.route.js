@@ -18,7 +18,6 @@ const {
 router.use(verifyToken);
 
 router.post("/:test_id/upload-question", upload.single('file'), isJudgeOfTest, uploadQuestion);
-router.patch("/:test_id/update-question", upload.single('file'), isJudgeOfTest, updateQuestion);
 router.get("/:test_id/download-question", isCandiateOrJudgeOfTest, downloadQuestion);
 router.post("/:test_id/upload-answer", upload.single('file'), isCandidateOfTest, uploadAnswer);
 router.get("/:test_id/download-answer", isCandiateOrJudgeOfTest , downloadAnswer);

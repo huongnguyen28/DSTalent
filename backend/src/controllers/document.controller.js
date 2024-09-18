@@ -248,54 +248,58 @@ const searchDocument = async (req, res) => {
       documents = await Document.findAndCountAll({
         where: {
           [Op.and]: [
-            {
-              [Op.or]: [ 
-                {privacy: 'public'},
-                {uploaded_by: userID},
-              ]
-            },
-            {
-              is_active: true
-            },
-            {
-              community_id: communityId
-            }
+              {
+                [Op.or]: [ 
+                  {privacy: 'public'},
+                  {uploaded_by: userID},
+                  Sequelize.literal(`EXISTS(SELECT 1 FROM document_access WHERE document_access.document_id = document.document_id AND document_access.user_id = ${userID})`)
+                ]
+              },
+              {
+                  is_active: true
+              },
+              {
+                community_id: communityId
+              }
+            ]
+          },
+          offset,
+          limit: Number(limit),
+          include,
+          attributes,
+          order: [
+            [Sequelize.literal(`CASE WHEN uploaded_by = ${userID} THEN 0 ELSE 1 END`), 'ASC'],
+            [Sequelize.literal(`CASE WHEN uploaded_by = ${userID} THEN privacy ELSE NULL END`), 'DESC'],
+            [Sequelize.literal(`CASE WHEN uploaded_by != ${userID} THEN 
+              EXISTS(SELECT 1 FROM document_access WHERE document_access.document_id = document.document_id AND document_access.user_id = ${userID})
+              ELSE NULL END`), 'DESC']
           ]
-        },
-        offset,
-        limit: Number(limit),
-        include,
-        attributes,
-        order: [
-          [Sequelize.literal(`CASE WHEN uploaded_by = ${userID} THEN 0 ELSE 1 END`), 'ASC'],
-          [Sequelize.literal(`CASE WHEN uploaded_by = ${userID} THEN privacy ELSE NULL END`), 'DESC'],
-        ]
-      });
-    } else {
-      let wheres = {}
-      let order = [];
-      let having;
-      let group;
-      let include2 = [];
-      if(query) {
-        wheres.document_name = {
-          [Op.like]: `%${query}%`
-        }; 
-      }
-      if(sort) {
-        order = [sort.split(',')];
-      }
-      if(tags.length > 0) {
-        let tagsCount = tags.length;
-        include2.push({
-          model: Document_Tag,
-          required: true,
-          attributes: [],
-          include: [ {
-              model: Tag,
-              required: true,
-              where: {
-                tag_name: {
+          });
+      } else {
+        let wheres = {}
+        let order = [];
+        let having;
+        let group;
+        let include2 = [];
+        if(query) {
+          wheres.document_name = {
+            [Op.like]: `%${query}%`
+          }; 
+        }
+        if(sort) {
+          order = [sort.split(',')];
+        }
+        if(tags.length > 0) {
+          let tagsCount = tags.length;
+          include2.push({
+            model: Document_Tag,
+            required: true,
+            attributes: [],
+            include: [ {
+                model: Tag,
+                required: true,
+                where: {
+                  tag_name: {
                   [Op.in]: tags
                 } 
               },
@@ -320,6 +324,7 @@ const searchDocument = async (req, res) => {
               [Op.or]: [ 
                 {privacy: 'public'},
                 {uploaded_by: userID},
+                Sequelize.literal(`EXISTS(SELECT 1 FROM document_access WHERE document_access.document_id = document.document_id AND document_access.user_id = ${userID})`)
               ]
             },
             {
@@ -467,6 +472,7 @@ const updateDocument = async(req, res) => {
     );
 
     const {document_name, price, access_days, full_content_path, preview_content_path, description, privacy, tags} = req.body;
+
     let modifed_tags = false;
 
     if (typeof tags !== 'undefined') {
@@ -495,28 +501,36 @@ const updateDocument = async(req, res) => {
         ignoreDuplicates: true
       });
     }
-    
-    const updatedDocument = await Document.update(
-      {
-        document_name: document_name || existingDocument.document_name,
-        price: price || existingDocument.price,
-        access_days: access_days || existingDocument.access_days,
-        full_content_path: full_content_path || existingDocument.full_content_path,
-        preview_content_path: preview_content_path || existingDocument.preview_content_path,
-        description: description || existingDocument.description,
-        privacy: privacy || existingDocument.privacy
-      },
-      {
-        where: { document_id: documentId },
-      }
-    );
 
-    if (updatedDocument[0] === 0 && !modifed_tags) { 
+    function hasChanges(newData, oldData) {
+      return Object.keys(newData).some(key => 
+        newData[key] !== undefined && newData[key] !== oldData[key]
+      );
+    } 
+
+    const changes = {
+      document_name,
+      price,
+      access_days,
+      full_content_path,
+      preview_content_path,
+      description,
+      privacy
+    };
+
+    if (!hasChanges(changes, existingDocument) && !modifed_tags) { 
       return formatResponse(
         res,
         {},
         STATUS_CODE.NOT_MODIFIED,
         "No changes were made!"
+      );
+    }
+
+    if(hasChanges(changes, existingDocument)) {
+      await Document.update(
+        changes,
+        { where: { document_id: documentId } }
       );
     }
 
