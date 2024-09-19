@@ -42,6 +42,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5001",
+      "http://localhost:8081",
       "https://socket-test-client.netlify.app/",
       "https://admin.socket.io/",
     ],

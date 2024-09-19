@@ -21,14 +21,13 @@ const { verifyAdmin } = require("../middlewares/verify-admin");
 
 router.use(verifyToken);
 
-router.route("/")
-  .get(getCommunityList)
-  .post(createCommunity);
+router.route("/").get(getCommunityList).post(createCommunity);
 
 router.get("/search", searchCommunity);
 
-router.route("/:community_id")
-  .get(verifyMember, getCommunityDetail)
+router
+  .route("/:community_id")
+  .get(getCommunityDetail)
   .patch(verifyMember, verifyAdmin, updateCommunity)
   .delete(verifyMember, verifyAdmin, deleteCommunity);
 
@@ -53,9 +52,15 @@ router
 
 router.use("/:community_id/chats", verifyMember, chatRoute);
 
-const { listLevelUpRequests, agreedToJudge } = require("../controllers/up_level.controller");
+const {
+  listLevelUpRequests,
+  agreedToJudge,
+} = require("../controllers/up_level.controller");
 router.get("/:community_id/judge-requests", verifyMember, listLevelUpRequests);
-router.get("/:community_id/up-level-requests/:up_level_request_id/agree", verifyMember, agreedToJudge);
-
+router.get(
+  "/:community_id/up-level-requests/:up_level_request_id/agree",
+  verifyMember,
+  agreedToJudge
+);
 
 module.exports = router;
