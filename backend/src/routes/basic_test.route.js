@@ -21,11 +21,9 @@ router
   .post(verifyMember, verifyAdmin, createBasicTest)
   .get(verifyMember, verifyAdmin, getBasicTests);
 
-router.get(
-  "/:community_id/basic-tests/random",
-  verifyMember,
-  getRandomBasicTest
-);
+router.get("/:community_id/basic-tests/random", getRandomBasicTest);
+
+router.get("/:community_id/basic-tests/submissions", getBasicTestSubmissions);
 
 router.get(
   "/:community_id/basic-tests/:basic_test_id",
@@ -48,16 +46,6 @@ router.delete(
   deleteBasicTest
 );
 
-router.post(
-  "/:community_id/basic-tests/:basic_test_id",
-  verifyMember,
-  submitBasicTest
-);
-
-router.get(
-  "/:community_id/basic-tests/submissions",
-  verifyMember,
-  getBasicTestSubmissions
-);
+router.post("/:community_id/basic-tests/:basic_test_id", submitBasicTest);
 
 module.exports = router;
