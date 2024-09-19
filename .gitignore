@@ -1,4 +1,2 @@
 /backend/node_modules
 /backend/.env
-/backend/sql
-.env
