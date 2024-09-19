@@ -23,7 +23,7 @@ router
 
 router.get("/:community_id/basic-tests/random", getRandomBasicTest);
 
-router.get("/:community_id/basic-tests/submissions", getBasicTestSubmissions);
+router.get("/:community_id/basic-test-submissions", getBasicTestSubmissions);
 
 router.get(
   "/:community_id/basic-tests/:basic_test_id",

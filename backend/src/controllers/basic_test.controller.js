@@ -6,6 +6,7 @@ const BasicTest = db.basic_test;
 const BasicTestSubmit = db.basic_test_submit;
 const Community = db.community;
 const User = db.user;
+const { Op, fn, col, Sequelize, or } = require("sequelize");
 
 // Fetch a random basic test for a community
 const getRandomBasicTest = async (req, res) => {
@@ -226,13 +227,13 @@ const submitBasicTest = async (req, res) => {
 const getBasicTestSubmissions = async (req, res) => {
   try {
     const communityId = req.params.community_id;
-    const isAdmin = req.member.is_admin;
+    const isAdmin = req.member?.is_admin;
     const userId = req.user.user_id;
     const whereCondition = {
-      community_id: communityId,
+      // community_id: communityId,
     };
 
-    if (!isAdmin) {
+    if (isAdmin == undefined || isAdmin == null) {
       whereCondition.user_id = userId;
     }
     // Member can only view their own submissions
@@ -242,11 +243,14 @@ const getBasicTestSubmissions = async (req, res) => {
           model: BasicTest,
           attributes: [], // This will prevent including BasicTest attributes in the final result
           where: {
-            basic_test_id: Sequelize.col("BasicTestSubmit.basic_test_id"),
+            basic_test_id: Sequelize.col("basic_test_submit.basic_test_id"),
+            community_id: communityId,
           },
         },
       ],
       where: whereCondition,
+      // order: [["created_at", "DESC"]],
+      // limit: 1,
     });
     return formatResponse(
       res,
