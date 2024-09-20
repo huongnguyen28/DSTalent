@@ -5,50 +5,54 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: backend_container
+    container_name: backend
     ports:
       - 8080:8080
     depends_on:
       mysql:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
     environment:
-      - DB_HOST=mysql_container
-      - DB_PORT=${MYSQL_PORT}
-      - DB_NAME=${MYSQL_DATABASE}
-      - DB_USERNAME=root
-      - DB_PASSWORD=${MYSQL_PASSWORD}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MONGODB_URI: ${MONGODB_URI}
     networks:
       - nodejs-mysql-network
   mysql:
-    image: mysql:8.0.33
-    container_name: mysql_container
+    image: mysql:8.0.32
+    container_name: mysql
+    restart: always
     ports:
       - 3307:3306
     environment:
-      - MYSQL_DATABASE=scientist_community
-      - MYSQL_ROOT_PASSWORD=123456
-      - MYSQL_ROOT_HOST=%
-    volumes:
-      - mysql-data:/var/lib/mysql
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     networks:
       - nodejs-mysql-network
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      retries: 10
-      interval: 3s
-      timeout: 30s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
   mongodb:
     image: mongo:latest
+    container_name: mongodb
     restart: always
-    container_name: mongodb_container
     ports:
       - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-
-volumes:
-  mysql-data:
-  mongo-data:
+    networks:
+      - nodejs-mysql-network
+    environment:
+      - MONGO_INITDB_DATABASE= ${MONGO_INITDB_DATABASE}
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb:27017/test --quiet
+      interval: 20s
+      timeout: 10s
+      retries: 5
 
 networks:
   nodejs-mysql-network:

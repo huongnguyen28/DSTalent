@@ -558,6 +558,34 @@ const getCommunityMembers = async (req, res) => {
   );
 };
 
+const getCommunityAdmins = async (req, res) => {
+  
+  const communityId = req.params.community_id;
+
+  const communityAdmins = await Member.findAll({
+    where: { community_id: communityId, is_admin: true },
+    include: [
+      {
+        model: User, 
+        attributes: ['user_id', 'full_name', 'avatar'], 
+      },
+    ],
+  });
+  
+  const result = communityAdmins.map(admin => ({
+    user_id: admin.user_id,
+    full_name: admin.user.full_name,
+    avatar: admin.user.avatar,
+  }));
+  
+  return formatResponse(
+    res,
+    result,
+    STATUS_CODE.SUCCESS,
+    "Get community admins successfully!"
+  );
+};
+
 const joinCommunity = async (req, res) => {
   const userInReq = req.user;
   const userId = userInReq.user_id;
@@ -869,4 +897,5 @@ module.exports = {
   searchCommunity,
   grantRoleInCommunity,
   revokeRoleInCommunity,
+  getCommunityAdmins,
 };

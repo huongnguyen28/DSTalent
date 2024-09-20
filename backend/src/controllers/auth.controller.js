@@ -433,78 +433,10 @@ const requestRefreshToken = async (req, res) => {
   }
 };
 
-const oauthGoogle = async (req, res) => {
-  try {
-    let user = await User.findOne({ where: { email: req.body.email } });
-    if (!user) {
-      const newUser = {
-        email: req.body.email,
-        full_name: req.body.full_name,
-        password: generateRandomPassword(20),
-        is_verify: true,
-      };
-
-      await User.create(newUser);
-
-      user = await User.findOne({ where: { email: req.body.email } });
-    }
-
-    const accessToken = generateToken(
-      user,
-      process.env.JWT_ACCESS_KEY,
-      process.env.ACCESS_TIME
-    );
-    const refreshToken = generateToken(
-      user,
-      process.env.JWT_REFRESH_KEY,
-      process.env.REFRESH_TIME
-    );
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      path: "/api/auth/refresh",
-      sameSite: "strict",
-    });
-
-    res.cookie("tokenLogout", refreshToken, {
-      httpOnly: true,
-      path: "/api/auth/logout",
-      sameSite: "strict",
-    });
-
-    const { password, refresh_token, verify_code, ...others } = user.dataValues;
-
-    user.refresh_token = refreshToken;
-    await user.save();
-
-    if (user.avatar)
-      others.avatar = await readAndTransformImageToBase64(user.avatar);
-
-    return formatResponse(
-      res,
-      {
-        user: others,
-        access_token: accessToken,
-      },
-      STATUS_CODE.SUCCESS,
-      "Logged in successfully!"
-    );
-  } catch (err) {
-    console.log(err.message);
-    return formatResponse(
-      res,
-      {},
-      STATUS_CODE.INTERNAL_SERVER_ERROR,
-      err.message
-    );
-  }
-};
-
 module.exports = {
   loginUser,
   requestRefreshToken,
   logoutUser,
-  oauthGoogle,
   registerUser,
   verifyEmail,
   getVerifyCode,
