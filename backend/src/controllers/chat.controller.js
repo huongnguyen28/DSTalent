@@ -123,9 +123,9 @@ const getChatRoomDetails = async (req, res) => {
     chat_room_id: chatRoomId,
     user_id: userId,
   });
-  console.log(userId);
-  console.log(chatRoomId);
-  console.log(chatMember);
+  // console.log(userId);
+  // console.log(chatRoomId);
+  // console.log(chatMember);
   if (!chatMember) {
     return formatResponse(
       res,
@@ -164,11 +164,16 @@ const getChatRoomDetails = async (req, res) => {
       },
     },
   });
+  const formattedResponseMembers = responseMembers.map((member) => ({
+    _id: member.user_id,
+    name: member.full_name,
+    avatar: member.avatar == null ? "" : member.avatar,
+  }));
   const formattedChatRoomDetails = {
     chat_room_id: chatRoom._id,
     room_name: chatRoom.room_name,
     community_id: chatRoom.community_id,
-    members: responseMembers,
+    members: formattedResponseMembers,
     created_at: chatRoom.createdAt,
     updated_at: chatRoom.updatedAt,
   };
@@ -207,9 +212,18 @@ const addChatMember = async (req, res) => {
     }
     chatMember.is_joined = true;
     const updatedChatMember = await chatMember.save();
+    const user = await User.findByPk(userId);
+    const formattedSavedChatMember = {
+      chatMember: updatedChatMember,
+      user: {
+        _id: userId,
+        name: user.full_name,
+        avatar: user.avatar == null ? "" : user.avatar,
+      },
+    };
     return formatResponse(
       res,
-      { chat_room_id: chatRoomId, user_id: userId },
+      formattedSavedChatMember,
       STATUS_CODE.SUCCESS,
       "Add chat member successfully!"
     );
@@ -220,9 +234,18 @@ const addChatMember = async (req, res) => {
     is_joined: true,
   });
   const savedChatMember = await newChatMember.save();
+  const user = await User.findByPk(userId);
+  const formattedSavedChatMember = {
+    chatMember: savedChatMember,
+    user: {
+      _id: userId,
+      name: user.full_name,
+      avatar: user.avatar == null ? "" : user.avatar,
+    },
+  };
   return formatResponse(
     res,
-    savedChatMember,
+    formattedSavedChatMember,
     STATUS_CODE.SUCCESS,
     "Add chat member successfully!"
   );
@@ -230,7 +253,7 @@ const addChatMember = async (req, res) => {
 
 const removeChatMember = async (req, res) => {
   const chatRoomId = req.params.chat_room_id;
-  const userId = req.body.user_id; // user_id to be removed from the chat room
+  const userId = req.params.user_id; // user_id to be removed from the chat room
   const chatRoom = await ChatRoom.findById(chatRoomId);
   if (!chatRoom) {
     return formatResponse(
