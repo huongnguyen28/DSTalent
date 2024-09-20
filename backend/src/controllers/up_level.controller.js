@@ -335,9 +335,9 @@ const listLevelUpRequests = async (req, res) => {
             order: [
                 ["candidate_target_level", "DESC"],
                 ["num_judge_agreed", "DESC"],
-                ["created_at", "ASC"] 
+                ["createdAt", "ASC"] 
             ],
-            attributes: ["up_level_request_id", "candidate_level", "candidate_target_level", "num_judge_agreed", "created_at"],
+            attributes: ["up_level_request_id", "candidate_level", "candidate_target_level", "num_judge_agreed", "createdAt"],
         });
 
         return formatResponse(
