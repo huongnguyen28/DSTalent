@@ -20,6 +20,22 @@ const deleteDocument = async (req, res) => {
     }
 
     const documentId = req.params.document_id;
+
+    const document = await Document.findOne(
+      {
+        where: { document_id: documentId, is_active: true }
+      }
+    );
+
+    if (!document) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Document not found!"
+      )
+    }
+
     await Document.update(
       {is_active: false},
       {where: {document_id: documentId}}
@@ -45,20 +61,35 @@ const deleteDocument = async (req, res) => {
 
 const uploadDocument = async (req, res) => {
   try {
-    const {document_name, price, access_days, full_content_path, preview_content_path, description, tags} = req.body;
+    const {document_name, price, access_days, description, tags, privacy} = req.body;
+    const files = req.files
+    var full_content_path = '', preview_content_path = ''
+    full_content_path = files[0].filename
+    if (files.length === 2) {
+      preview_content_path = files[1].filename
+    }
+    // for (let i = 0; i < files.length; i++) {
+    //   if (files[i].originalname === 'full.pdf') {
+    //     full_content_path = files[i].filename
+    //   }
+    //   if (files[i].originalname === 'preview.pdf') {
+    //     preview_content_path = files[i].filename
+    //   }
+    // }
     const uploaded_by = req.user.user_id;
     const communityID = req.params.community_id;
 
     const tagsToCreate = [];
 
+    console.log(tags)
     for (const tag of tags) {
       const [existingTag, created] = await Tag.findOrCreate({
         where: { tag_name: tag },
         defaults: { tag_name: tag }
       });
       tagsToCreate.push(existingTag);
-    }
-    
+    }    
+
     const newDocument = await Document.create({
       document_name,
       community_id: communityID,
@@ -67,9 +98,10 @@ const uploadDocument = async (req, res) => {
       full_content_path,
       preview_content_path,
       description,
-      uploaded_by
+      uploaded_by,
+      privacy: privacy
     });
-    
+     
     const tag_arr_id = tagsToCreate.map(tag => tag.tag_id);
     const documentTagsToCreate = tag_arr_id.map(tagId => ({
       document_id: newDocument.document_id,
@@ -88,7 +120,7 @@ const uploadDocument = async (req, res) => {
       price_paid: -1,
       expired_date: new Date("9999-12-31T23:59:59.999Z")
     });
-
+    
     return formatResponse(
       res,
       {
@@ -231,7 +263,7 @@ const searchDocument = async (req, res) => {
         [Sequelize.literal(`uploaded_by = ${userID}`), 'is_owner'],
         [Sequelize.literal(`EXISTS(SELECT 1 FROM document_access WHERE document_access.document_id = document.document_id AND document_access.user_id = ${userID})`), 'is_accessed'],
       ],
-      exclude: ['is_active', 'updatedAt', 'community_id', 'document_id', 'full_content_path']
+      exclude: ['is_active', 'updatedAt', 'community_id']
     };
 
     const include = [
@@ -397,7 +429,7 @@ const viewSpecificDocument = async (req, res) => {
     const documentId = req.params.document_id;
     const userId = req.user.user_id; 
 
-    const document = await Document.findOne({ where: { document_id: documentId } });
+    const document = await Document.findOne({ where: { document_id: documentId, is_active: true } });
 
     if (!document) {
       return formatResponse(
@@ -417,24 +449,24 @@ const viewSpecificDocument = async (req, res) => {
       );
     }
 
-    else {
-      const documentAccess = await Document_Access.findOne({
-        where: {
-          document_id: documentId,
-          user_id: userId,
-          expired_date: { [Op.lte]: new Date() }, // Ensure access has not expired
-        }
-      });
+    // else {
+    //   const documentAccess = await Document_Access.findOne({
+    //     where: {
+    //       document_id: documentId,
+    //       user_id: userId,
+    //       expired_date: { [Op.lte]: new Date() }, // Ensure access has not expired
+    //     }
+    //   });
 
-      if (!documentAccess) {
-        return formatResponse(
-          res,
-          {},
-          STATUS_CODE.FORBIDDEN,
-          "Access denied or document access has expired!"
-        );
-      }
-    }
+    //   if (!documentAccess) {
+    //     return formatResponse(
+    //       res,
+    //       {},
+    //       STATUS_CODE.FORBIDDEN,
+    //       "Access denied or document access has expired!"
+    //     );
+    //   }
+    // }
 
     return formatResponse(
       res,
@@ -471,7 +503,26 @@ const updateDocument = async(req, res) => {
       }
     );
 
-    const {document_name, price, access_days, full_content_path, preview_content_path, description, privacy, tags} = req.body;
+    const {document_name, price, access_days, description, privacy, tags, fileState} = req.body;
+  
+    const files = req.files
+    var full_content_path = '', preview_content_path = ''
+    if (fileState[0] === '1'){
+      full_content_path = files[0].filename
+      if (fileState[1] === '1') {
+        preview_content_path = files[1].filename
+      }
+    }
+    else if (fileState[1] === '1') {
+      preview_content_path = files[0].filename
+    }
+
+    // if (fileState[0] === '1') {
+    //   full_content_path = files[0].filename
+    // }
+    // if (fileState[0] === '1') {
+    //   preview_content_path = files[1].filename
+    // }
 
     let modifed_tags = false;
 
@@ -560,11 +611,80 @@ const updateDocument = async(req, res) => {
   }
 };
 
+const deleteDocumentFile = async (req, res) => {
+  try {
+    if(req.document.document_access_level !== 2) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.FORBIDDEN,
+        "You don't have permission to delete file!"
+      )
+    }
+
+    const documentId = req.params.document_id;
+    // const userId = req.user.user_id;
+
+    const document = await Document.findOne({ where: { document_id: documentId, is_active: true } });
+
+    if (!document) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Document not found!"
+      );
+    }
+
+    await Document.update(
+      {preview_content_path: ''},
+      {where: {document_id: documentId}}
+    );
+
+    // else {
+    //   const documentAccess = await Document_Access.findOne({
+    //     where: {
+    //       document_id: documentId,
+    //       user_id: userId,
+    //       expired_date: { [Op.lte]: new Date() }, // Ensure access has not expired
+    //     }
+    //   });
+
+    //   if (!documentAccess) {
+    //     return formatResponse(
+    //       res,
+    //       {},
+    //       STATUS_CODE.FORBIDDEN,
+    //       "Access denied or document access has expired!"
+    //     );
+    //   }
+    // }
+
+    return formatResponse(
+      res,
+      {
+        document_id: documentId,
+      },
+      STATUS_CODE.SUCCESS,
+      "Delete file successfully!"
+    );
+
+  } catch (error) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
 module.exports = {
   deleteDocument,
   uploadDocument,
   updateDocumentAccessLevel,
   searchDocument,
   viewSpecificDocument,
-  updateDocument
+  updateDocument,
+  deleteDocumentFile
 }
