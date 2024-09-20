@@ -337,12 +337,25 @@ const listLevelUpRequests = async (req, res) => {
                 ["num_judge_agreed", "DESC"],
                 ["createdAt", "ASC"] 
             ],
-            attributes: ["up_level_request_id", "candidate_level", "candidate_target_level", "num_judge_agreed", "createdAt"],
+            attributes: ["up_level_request_id", "candidate_level", "candidate_target_level", "num_judge_agreed", "createdAt", "member_id"],
         });
+
+        const listLevelUpRequestWithNames = await Promise.all(listLevelUpRequest.map(async (request) => {
+            const member = await Member.findByPk(request.member_id, {
+                attributes: ["user_id"]
+            });
+            const user = await User.findByPk(member.user_id, {
+                attributes: ["full_name"]
+            });
+            return {
+                ...request.dataValues,
+                member_name: user.full_name
+            };
+        }));
 
         return formatResponse(
             res,
-            listLevelUpRequest,
+            listLevelUpRequestWithNames,
             STATUS_CODE.SUCCESS,
             "List level up request successfully!"
         );
