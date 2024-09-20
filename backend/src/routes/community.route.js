@@ -1,5 +1,9 @@
 const express = require("express");
 const router = express.Router();
+const multer = require('multer');
+const storage = require("../configs/multer");
+const upload = multer({ storage });
+
 const {
   getCommunityList,
   createCommunity,
@@ -40,7 +44,7 @@ router.post("/:community_id/join", joinCommunity);
 router.post("/:community_id/leave", verifyMember, leaveCommunity);
 
 const { uploadDocument } = require("../controllers/document.controller");
-router.post("/:community_id/documents", verifyMember, uploadDocument);
+router.post("/:community_id/documents", verifyMember, upload.array('document'), uploadDocument);
 
 const { searchDocument } = require("../controllers/document.controller");
 router.get("/:community_id/documents/search", searchDocument);
