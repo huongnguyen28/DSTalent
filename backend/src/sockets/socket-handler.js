@@ -123,10 +123,25 @@ module.exports = (io) => {
         created_at: new Date(),
       };
       chatRoom.chat_messages.push(newChatMessage);
-      chatRoom.save(); // no need to use await here because we don't need to wait for the result
+      await chatRoom.save(); // no need to use await here because we don't need to wait for the result
+      // Tìm thông tin người dùng
+      const user = await User.findByPk(userId);
+      const userName = user?.full_name || "Unknown User"; // Tên người dùng
+      const avatar = user?.avatar || ""; // Avatar người dùng
+
+      // Phát tin nhắn tới tất cả người dùng trong phòng trừ người gửi
       socket.broadcast.to(chatRoomId).emit(SOCKET_EVENT.RECEIVE_MESSAGE, {
         chat_room_id: chatRoomId,
-        chat_message: newChatMessage,
+        newMessage: {
+          _id: chatRoom.chat_messages[chatRoom.chat_messages.length - 1]._id, // ID của tin nhắn
+          text: newChatMessage.message, // Nội dung tin nhắn
+          createdAt: new Date(newChatMessage.created_at), // Thời gian tạo tin nhắn
+          user: {
+            _id: newChatMessage.created_by, // ID của người gửi
+            name: userName, // Tên người gửi
+            avatar: avatar, // Avatar của người gửi
+          },
+        },
       });
     });
 
