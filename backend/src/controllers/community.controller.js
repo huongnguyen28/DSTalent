@@ -8,6 +8,9 @@ const { STATUS_CODE, formatResponse } = require("../utils/services");
 const { Op, fn, col, Sequelize } = require("sequelize");
 const Tag = db.tag;
 const Community_Tag = db.community_tag;
+const BasicTestSubmit = db.basic_test_submit;
+const BasicTest = db.basic_test;
+require("dotenv").config();
 
 const getCommunityList = async (req, res) => {
   try {
@@ -204,10 +207,10 @@ const updateCommunity = async (req, res) => {
     }
 
     function hasChanges(newData, oldData) {
-      return Object.keys(newData).some(key => 
-        newData[key] !== undefined && newData[key] !== oldData[key]
+      return Object.keys(newData).some(
+        (key) => newData[key] !== undefined && newData[key] !== oldData[key]
       );
-    } 
+    }
 
     const changes = {
       name,
@@ -215,10 +218,10 @@ const updateCommunity = async (req, res) => {
       privacy,
       cover_image,
       contact_email,
-      contact_phone
-    }
-    
-    if(!hasChanges(changes, existingCommunity) && !modifed_tags) {
+      contact_phone,
+    };
+
+    if (!hasChanges(changes, existingCommunity) && !modifed_tags) {
       return formatResponse(
         res,
         {},
@@ -227,13 +230,10 @@ const updateCommunity = async (req, res) => {
       );
     }
 
-    if(hasChanges(changes, existingCommunity)) {
-      await Community.update(
-        changes,
-        {
-          where: { community_id: communityId }
-        }
-      );
+    if (hasChanges(changes, existingCommunity)) {
+      await Community.update(changes, {
+        where: { community_id: communityId },
+      });
     }
 
     return formatResponse(
@@ -326,11 +326,11 @@ const searchCommunity = async (req, res) => {
           [Op.and]: [
             {
               [Op.or]: [
-                { privacy: "public" }, 
-                { owner: userID }, 
+                { privacy: "public" },
+                { owner: userID },
                 Sequelize.literal(
                   `EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)`
-                )
+                ),
               ],
             },
             {
@@ -432,11 +432,11 @@ const searchCommunity = async (req, res) => {
               [Op.and]: [
                 {
                   [Op.or]: [
-                    { privacy: "public" }, 
-                    { owner: userID }, 
+                    { privacy: "public" },
+                    { owner: userID },
                     Sequelize.literal(
                       `EXISTS(SELECT 1 FROM member WHERE member.community_id = community.community_id AND member.user_id = ${userID} AND member.is_joined = true)`
-                    )
+                    ),
                   ],
                 },
                 {
@@ -464,9 +464,9 @@ const searchCommunity = async (req, res) => {
       totalPage: totalPage,
       hasNext: page < totalPage,
     };
-    
+
     const data = {
-      communities: communities.rows.map(community => {
+      communities: communities.rows.map((community) => {
         const { owner, ...otherAttributes } = community.get({ plain: true });
         return otherAttributes;
       }),
@@ -590,6 +590,47 @@ const joinCommunity = async (req, res) => {
   const userInReq = req.user;
   const userId = userInReq.user_id;
   const communityId = req.params.community_id;
+  const whereCondition = {
+    // community_id: communityId,
+  };
+
+  // Member can only view their own submissions
+  const memberSubmissions = await BasicTestSubmit.findAll({
+    include: [
+      {
+        model: BasicTest,
+        attributes: [], // This will prevent including BasicTest attributes in the final result
+        where: {
+          basic_test_id: Sequelize.col("basic_test_submit.basic_test_id"),
+          community_id: communityId,
+        },
+      },
+    ],
+    where: whereCondition,
+    order: [["created_at", "DESC"]],
+    limit: 1,
+  });
+  if (memberSubmissions.length > 0) {
+    const submission = memberSubmissions[0];
+    const score = submission.score;
+    // console.log(score);
+    if (score < process.env.SCORE_TO_PASS) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.BAD_REQUEST,
+        "User must pass the basic test to join the community!"
+      );
+    }
+  } else {
+    // User has not done the basic test
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.BAD_REQUEST,
+      "User must do the basic test to join the community!"
+    );
+  }
   const member = await Member.findOne({
     where: { community_id: communityId, user_id: userId },
   });

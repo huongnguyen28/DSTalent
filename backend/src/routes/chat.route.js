@@ -21,8 +21,9 @@ router
   // .all(verifyMember)
   .get(getChatRoomDetails)
   .post(addChatMember)
-  .delete(removeChatMember)
   .put(updateChatRoom);
+
+router.route("/:chat_room_id/members/:user_id").delete(removeChatMember);
 
 router
   .route("/:chat_room_id/messages")

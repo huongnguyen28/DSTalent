@@ -79,11 +79,31 @@ const getChatRooms = async (req, res) => {
   // console.log(chatRooms);
 
   // If you want to explicitly include the _id as chat_room_id
-  const formattedChatRooms = chatRooms.map((room) => ({
-    chat_room_id: room._id,
-    room_name: room.room_name,
-    community_id: room.community_id,
-  }));
+  const formattedChatRooms = await Promise.all(
+    chatRooms.map(async (room) => {
+      // Find the user by ID (assumes `User.findById` returns a promise)
+      // console.log(room);
+      const len = room.chat_messages.length;
+      const lastMessageInfo = room.chat_messages[len - 1];
+      let user;
+      if (lastMessageInfo == null) {
+        user = null;
+      } else {
+        user = await User.findByPk(lastMessageInfo.created_by);
+      }
+
+      // Return the formatted object
+      return {
+        chat_room_id: room._id,
+        room_name: room.room_name,
+        community_id: room.community_id,
+        last_message: lastMessageInfo != null ? lastMessageInfo.message : "",
+        last_message_time:
+          lastMessageInfo != null ? lastMessageInfo.created_at : "",
+        full_name: user != null ? user.full_name : "", // Handle case where user is not found
+      };
+    })
+  );
   return formatResponse(
     res,
     formattedChatRooms,
@@ -103,9 +123,9 @@ const getChatRoomDetails = async (req, res) => {
     chat_room_id: chatRoomId,
     user_id: userId,
   });
-  console.log(userId);
-  console.log(chatRoomId);
-  console.log(chatMember);
+  // console.log(userId);
+  // console.log(chatRoomId);
+  // console.log(chatMember);
   if (!chatMember) {
     return formatResponse(
       res,
@@ -144,11 +164,16 @@ const getChatRoomDetails = async (req, res) => {
       },
     },
   });
+  const formattedResponseMembers = responseMembers.map((member) => ({
+    _id: member.user_id,
+    name: member.full_name,
+    avatar: member.avatar == null ? "" : member.avatar,
+  }));
   const formattedChatRoomDetails = {
     chat_room_id: chatRoom._id,
     room_name: chatRoom.room_name,
     community_id: chatRoom.community_id,
-    members: responseMembers,
+    members: formattedResponseMembers,
     created_at: chatRoom.createdAt,
     updated_at: chatRoom.updatedAt,
   };
@@ -187,9 +212,18 @@ const addChatMember = async (req, res) => {
     }
     chatMember.is_joined = true;
     const updatedChatMember = await chatMember.save();
+    const user = await User.findByPk(userId);
+    const formattedSavedChatMember = {
+      chatMember: updatedChatMember,
+      user: {
+        _id: userId,
+        name: user.full_name,
+        avatar: user.avatar == null ? "" : user.avatar,
+      },
+    };
     return formatResponse(
       res,
-      { chat_room_id: chatRoomId, user_id: userId },
+      formattedSavedChatMember,
       STATUS_CODE.SUCCESS,
       "Add chat member successfully!"
     );
@@ -200,9 +234,18 @@ const addChatMember = async (req, res) => {
     is_joined: true,
   });
   const savedChatMember = await newChatMember.save();
+  const user = await User.findByPk(userId);
+  const formattedSavedChatMember = {
+    chatMember: savedChatMember,
+    user: {
+      _id: userId,
+      name: user.full_name,
+      avatar: user.avatar == null ? "" : user.avatar,
+    },
+  };
   return formatResponse(
     res,
-    savedChatMember,
+    formattedSavedChatMember,
     STATUS_CODE.SUCCESS,
     "Add chat member successfully!"
   );
@@ -210,7 +253,7 @@ const addChatMember = async (req, res) => {
 
 const removeChatMember = async (req, res) => {
   const chatRoomId = req.params.chat_room_id;
-  const userId = req.body.user_id; // user_id to be removed from the chat room
+  const userId = req.params.user_id; // user_id to be removed from the chat room
   const chatRoom = await ChatRoom.findById(chatRoomId);
   if (!chatRoom) {
     return formatResponse(
@@ -293,7 +336,22 @@ const getChatMessages = async (req, res) => {
       "Chat room not found!"
     );
   }
-  const chatMessages = chatRoom.chat_messages;
+  const chatMessages = await Promise.all(
+    chatRoom.chat_messages.map(async (message) => {
+      const user = await User.findByPk(message.created_by);
+      return {
+        _id: message._id,
+        user: {
+          _id: message.created_by,
+          name: user.full_name,
+          avatar: user.avatar == null ? "" : user.avatar,
+        },
+        text: message.message,
+        createdAt: message.created_at,
+      };
+    })
+  );
+
   return formatResponse(
     res,
     chatMessages,
