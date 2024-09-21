@@ -503,10 +503,10 @@ const updateDocument = async(req, res) => {
       }
     );
 
-    const {document_name, price, access_days, description, privacy, tags, fileState} = req.body;
+    var {document_name, price, access_days, description, privacy, tags, fileState, full_content_path, preview_content_path} = req.body;
   
     const files = req.files
-    var full_content_path = '', preview_content_path = ''
+    
     if (fileState[0] === '1'){
       full_content_path = files[0].filename
       if (fileState[1] === '1') {
@@ -516,13 +516,6 @@ const updateDocument = async(req, res) => {
     else if (fileState[1] === '1') {
       preview_content_path = files[0].filename
     }
-
-    // if (fileState[0] === '1') {
-    //   full_content_path = files[0].filename
-    // }
-    // if (fileState[0] === '1') {
-    //   preview_content_path = files[1].filename
-    // }
 
     let modifed_tags = false;
 
@@ -540,7 +533,6 @@ const updateDocument = async(req, res) => {
         });
         tagsToCreate.push(existingTag);
       }
-    
       const tag_arr_id = tagsToCreate.map(tag => tag.tag_id);
     
       const documentTagsToCreate = tag_arr_id.map(tagId => ({
