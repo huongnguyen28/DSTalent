@@ -15,6 +15,9 @@ require("dotenv").config();
 const getCommunityList = async (req, res) => {
   try {
     const communities = await Community.findAll({
+      where : {
+        is_active: true
+      },
       attributes: [
         "community_id",
         "name",

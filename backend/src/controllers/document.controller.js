@@ -68,14 +68,6 @@ const uploadDocument = async (req, res) => {
     if (files.length === 2) {
       preview_content_path = files[1].filename
     }
-    // for (let i = 0; i < files.length; i++) {
-    //   if (files[i].originalname === 'full.pdf') {
-    //     full_content_path = files[i].filename
-    //   }
-    //   if (files[i].originalname === 'preview.pdf') {
-    //     preview_content_path = files[i].filename
-    //   }
-    // }
     const uploaded_by = req.user.user_id;
     const communityID = req.params.community_id;
 
@@ -389,7 +381,7 @@ const searchDocument = async (req, res) => {
     }
 
     const totalPage = Math.ceil(documents.count / limit);
-    if (page > totalPage) {
+    if (page > 1 && page > totalPage) {
       return formatResponse(
         res,
         {},
