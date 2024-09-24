@@ -608,6 +608,7 @@ const deleteDocumentFile = async (req, res) => {
 
     const documentId = req.params.document_id;
     // const userId = req.user.user_id;
+    console.log('doc id doc con',documentId)
 
     const document = await Document.findOne({ where: { document_id: documentId, is_active: true } });
 
