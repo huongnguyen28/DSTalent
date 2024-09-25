@@ -15,6 +15,9 @@ require("dotenv").config();
 const getCommunityList = async (req, res) => {
   try {
     const communities = await Community.findAll({
+      where : {
+        is_active: true
+      },
       attributes: [
         "community_id",
         "name",
@@ -507,11 +510,12 @@ const getCommunityDetail = async (req, res) => {
     );
   }
 
-  const isJoined = await Member.findOne({
+  const member = await Member.findOne({
     where: { community_id: communityId, user_id: userId },
-    attributes: ["is_joined"],
+    attributes: ["is_joined", "is_admin"],
   });
-  community.dataValues.is_joined = isJoined ? isJoined.is_joined : false;
+  community.dataValues.is_joined = member ? member.is_joined : false;
+  community.dataValues.is_admin = member ? member.is_admin : false;
 
   return formatResponse(
     res,
