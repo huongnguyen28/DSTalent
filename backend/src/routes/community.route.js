@@ -17,6 +17,8 @@ const {
   deleteCommunity,
   searchCommunity,
   getCommunityAdmins,
+  grantRoleInCommunity,
+  revokeRoleInCommunity
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
@@ -36,6 +38,10 @@ router
   .delete(verifyMember, verifyAdmin, deleteCommunity);
 
 router.get("/:community_id/members", verifyMember, getCommunityMembers);
+
+router.patch("/:community_id/members/:member_id/grant", verifyMember, verifyAdmin, grantRoleInCommunity);
+
+router.patch("/:community_id/members/:member_id/revoke", verifyMember, verifyAdmin, revokeRoleInCommunity);
 
 router.get("/:community_id/admins", getCommunityAdmins);
 
