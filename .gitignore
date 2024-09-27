@@ -3,3 +3,4 @@
 .env
 /backend/sql
 .idea
+/backend/public/
