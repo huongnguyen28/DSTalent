@@ -310,7 +310,7 @@ const searchCommunity = async (req, res) => {
           "is_joined",
         ],
       ],
-      exclude: ["is_active", "updatedAt", "community_id"],
+      exclude: ["is_active", "updatedAt"],
     };
     const include = [
       {
