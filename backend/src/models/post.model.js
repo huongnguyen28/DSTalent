@@ -6,7 +6,7 @@ module.exports = (mongoose) => {
         creator_id: { type: Number, required: true },
         attachments: [{
             url: { type: String, required: true },
-            type: { type: String, required: true } // Ví dụ: 'image/png', 'video/mp4'
+            type: { type: String, required: true } // E.g., 'image/png', 'video/mp4'
         }],
         likes: [{
             user_id: { type: Number, required: true },
@@ -18,7 +18,7 @@ module.exports = (mongoose) => {
             creator_name: { type: String, required: true },
             attachment: {
                 url: { type: String, required: true },
-                type: { type: String, required: true } // Ví dụ: 'image/png', 'video/mp4'
+                type: { type: String, required: true } // E.g., 'image/png', 'video/mp4'
             },
             createdAt: { type: Date, default: Date.now },
             updatedAt: { type: Date, default: Date.now }
