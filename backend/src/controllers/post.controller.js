@@ -2,6 +2,7 @@ const db = require("../configs/db");
 const mongoose = require('mongoose');
 const { STATUS_CODE, formatResponse } = require("../utils/services");
 const Post = db.post;
+const User = db.user;
 const Tag = db.tag;
 const PostTag = db.post_tag;
 
@@ -107,42 +108,45 @@ const getPosts = async (req, res) => {
     }
 };
 
-
-
 const createPost = async (req, res) => {
     const transaction = await db.sequelize.transaction();
 
     try {
         const { tags, caption, attachments } = req.body;
+        const { community_id } = req.params;
 
-        const {  community_id } = req.params;
-        
-        // Tạo post mới với Mongoose
+        // Fetch the user's full name from the database
+        const user = await User.findOne({ where: { user_id: req.user.user_id }, transaction });
+
+        if (!user) {
+            return formatResponse(res, {}, STATUS_CODE.NOT_FOUND, "User not found!");
+        }
+
+        // Create a new post with Mongoose
         const newPost = new Post({
             caption,
-            attachments,
+            attachments: req.file ? [{ url: req.file.path, type: req.file.mimetype }] : [],
             community_id: community_id,
-            creator_name: req.user.full_name,
+            creator_name: user.full_name,  // Use the fetched user's full name
             creator_id: req.user.user_id,
-            // createdAt: new Date().toISOString(),
-            likes: [],  // prevent user from bufing the likes   
-            comments: [], // prevent user from bufing the comments
+            likes: [],  // prevent user from buffing the likes
+            comments: [], // prevent user from buffing the comments
         });
-        
+
         await newPost.save();
 
-        // Xử lý tags
+        // Handle tags
         if (tags && tags.length > 0) {
             for (let tag_name of tags) {
-                // Tìm hoặc tạo tag
+                // Find or create tag
                 const [tag] = await Tag.findOrCreate({
                     where: { tag_name: tag_name },
                     transaction
                 });
 
-                // Tạo liên kết giữa post và tag
+                // Create link between post and tag
                 await PostTag.create({
-                    post_id: newPost._id.toString(),  // Chuyển ObjectId thành string
+                    post_id: newPost._id.toString(),  // Convert ObjectId to string
                     tag_id: tag.tag_id
                 }, { transaction });
             }
@@ -159,7 +163,6 @@ const createPost = async (req, res) => {
             STATUS_CODE.CREATED,
             "Success!"
         );
-
 
     } catch (error) {
         await transaction.rollback();
@@ -213,7 +216,6 @@ const getPost = async (req, res) => {
     }
 };
 
-
 const commentPost = async (req, res) => {
     const { post_id } = req.params;
     const { text, attachment } = req.body;
@@ -232,9 +234,21 @@ const commentPost = async (req, res) => {
             );
         }
 
+        // Fetch the user's full name from the database
+        const user = await User.findOne({ where: { user_id: req.user.user_id } });
+
+        if (!user) {
+            return formatResponse(
+                res,
+                {},
+                STATUS_CODE.NOT_FOUND,
+                "User not found!"
+            );
+        }
+
         // Create the new comment
         const comment = {
-            creator_name: req.user.full_name,
+            creator_name: user.full_name,  // Use the fetched user's full name
             creator_id: req.user.user_id,
             text: text,
             attachment: attachment,
@@ -264,11 +278,67 @@ const commentPost = async (req, res) => {
             res,
             {},
             STATUS_CODE.INTERNAL_SERVER_ERROR,
-            // "Failed to add comment"
             error.message
         );
     }
 };
+
+
+// const commentPost = async (req, res) => {
+//     const { post_id } = req.params;
+//     const { text, attachment } = req.body;
+
+//     try {
+//         // Find the post by its ID
+//         const post = await Post.findById(post_id);
+
+//         // If the post is not found, return a 404 status
+//         if (!post) {
+//             return formatResponse(
+//                 res,
+//                 {},
+//                 STATUS_CODE.NOT_FOUND,
+//                 `No post with id: ${post_id}`
+//             );
+//         }
+
+//         // Create the new comment
+//         const comment = {
+//             creator_name: req.user.full_name,
+//             creator_id: req.user.user_id,
+//             text: text,
+//             attachment: attachment,
+//             createdAt: new Date(),
+//             updatedAt: new Date(),
+//         };
+
+//         // Add the new comment to the post's comments array
+//         post.comments.push(comment);
+
+//         // Save the updated post
+//         const updatedPost = await post.save(); // Use save() to ensure validation
+
+//         // Return the updated post with a success message
+//         return formatResponse(
+//             res,
+//             {
+//                 updatedPost
+//             },
+//             STATUS_CODE.SUCCESS,
+//             "Comment added successfully!"
+//         );
+
+//     } catch (error) {
+//         // Handle any errors that occur
+//         return formatResponse(
+//             res,
+//             {},
+//             STATUS_CODE.INTERNAL_SERVER_ERROR,
+//             // "Failed to add comment"
+//             error.message
+//         );
+//     }
+// };
 
 
 
