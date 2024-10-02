@@ -4,7 +4,7 @@ const Community = db.community;
 const Document = db.document;
 const User = db.user;
 const Member = db.member;
-const { STATUS_CODE, formatResponse } = require("../utils/services");
+const { STATUS_CODE, formatResponse, readAndTransformImageToBase64} = require("../utils/services");
 const { Op, fn, col, Sequelize } = require("sequelize");
 const Tag = db.tag;
 const Community_Tag = db.community_tag;
@@ -15,6 +15,9 @@ require("dotenv").config();
 const getCommunityList = async (req, res) => {
   try {
     const communities = await Community.findAll({
+      where : {
+        is_active: true
+      },
       attributes: [
         "community_id",
         "name",
@@ -115,6 +118,7 @@ const createCommunity = async (req, res) => {
       contact_email: req.user.email,
       contact_phone: req.user.phone,
     });
+
 
     const tag_arr_id = tagsToCreate.map((tag) => tag.tag_id);
     const communityTagsToCreate = tag_arr_id.map((tagId) => ({
@@ -307,7 +311,7 @@ const searchCommunity = async (req, res) => {
           "is_joined",
         ],
       ],
-      exclude: ["is_active", "updatedAt", "community_id"],
+      exclude: ["is_active", "updatedAt"],
     };
     const include = [
       {
@@ -494,7 +498,7 @@ const getCommunityDetail = async (req, res) => {
   const community = await Community.findOne({
     where: { community_id: communityId },
     attributes: {
-      exclude: ["owner"], // Exclude owner field to prevent sensitive information
+      //exclude: ["owner"], // Exclude owner field to prevent sensitive information
     },
   });
 
@@ -507,11 +511,12 @@ const getCommunityDetail = async (req, res) => {
     );
   }
 
-  const isJoined = await Member.findOne({
+  const member = await Member.findOne({
     where: { community_id: communityId, user_id: userId },
-    attributes: ["is_joined"],
+    attributes: ["is_joined", "is_admin"],
   });
-  community.dataValues.is_joined = isJoined ? isJoined.is_joined : false;
+  community.dataValues.is_joined = member ? member.is_joined : false;
+  community.dataValues.is_admin = member ? member.is_admin : false;
 
   return formatResponse(
     res,
@@ -545,14 +550,25 @@ const getCommunityMembers = async (req, res) => {
         },
       },
     ],
-    where: { community_id: communityId, is_joined: true },
+    where: { community_id: communityId, is_joined: true, is_admin: false },
     order: [[{ model: User }, sort, order]],
     limit: limit,
     offset: offset, // offset for pagination
   });
+  const result = await Promise.all(
+      communityMembers.map(async (member) => ({
+        user_id: member.user_id,
+        user: {
+          full_name: member.user.full_name,
+          avatar: member.user.avatar ? await readAndTransformImageToBase64(member.user.avatar) : null,
+        },
+        current_level: member.current_level,
+        description: member.description,
+      }))
+  );
   return formatResponse(
     res,
-    communityMembers,
+    result,
     STATUS_CODE.SUCCESS,
     "Get community members successfully!"
   );
@@ -571,12 +587,15 @@ const getCommunityAdmins = async (req, res) => {
       },
     ],
   });
-  
-  const result = communityAdmins.map(admin => ({
-    user_id: admin.user_id,
-    full_name: admin.user.full_name,
-    avatar: admin.user.avatar,
-  }));
+  // console.log(communityAdmins)
+
+  const result = await Promise.all(
+      communityAdmins.map(async (admin) => ({
+        user_id: admin.user_id,
+        full_name: admin.user.full_name,
+        avatar: admin.user.avatar ? await readAndTransformImageToBase64(admin.user.avatar) : null,
+      }))
+  );
   
   return formatResponse(
     res,

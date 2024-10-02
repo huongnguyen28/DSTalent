@@ -68,14 +68,6 @@ const uploadDocument = async (req, res) => {
     if (files.length === 2) {
       preview_content_path = files[1].filename
     }
-    // for (let i = 0; i < files.length; i++) {
-    //   if (files[i].originalname === 'full.pdf') {
-    //     full_content_path = files[i].filename
-    //   }
-    //   if (files[i].originalname === 'preview.pdf') {
-    //     preview_content_path = files[i].filename
-    //   }
-    // }
     const uploaded_by = req.user.user_id;
     const communityID = req.params.community_id;
 
@@ -389,7 +381,7 @@ const searchDocument = async (req, res) => {
     }
 
     const totalPage = Math.ceil(documents.count / limit);
-    if (page > totalPage) {
+    if (page > 1 && page > totalPage) {
       return formatResponse(
         res,
         {},
@@ -503,10 +495,10 @@ const updateDocument = async(req, res) => {
       }
     );
 
-    const {document_name, price, access_days, description, privacy, tags, fileState} = req.body;
+    var {document_name, price, access_days, description, privacy, tags, fileState, full_content_path, preview_content_path} = req.body;
   
     const files = req.files
-    var full_content_path = '', preview_content_path = ''
+    
     if (fileState[0] === '1'){
       full_content_path = files[0].filename
       if (fileState[1] === '1') {
@@ -516,13 +508,6 @@ const updateDocument = async(req, res) => {
     else if (fileState[1] === '1') {
       preview_content_path = files[0].filename
     }
-
-    // if (fileState[0] === '1') {
-    //   full_content_path = files[0].filename
-    // }
-    // if (fileState[0] === '1') {
-    //   preview_content_path = files[1].filename
-    // }
 
     let modifed_tags = false;
 
@@ -540,7 +525,6 @@ const updateDocument = async(req, res) => {
         });
         tagsToCreate.push(existingTag);
       }
-    
       const tag_arr_id = tagsToCreate.map(tag => tag.tag_id);
     
       const documentTagsToCreate = tag_arr_id.map(tagId => ({
@@ -624,6 +608,7 @@ const deleteDocumentFile = async (req, res) => {
 
     const documentId = req.params.document_id;
     // const userId = req.user.user_id;
+    console.log('doc id doc con',documentId)
 
     const document = await Document.findOne({ where: { document_id: documentId, is_active: true } });
 

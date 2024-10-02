@@ -1,5 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const storage = require("../configs/multer");
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 1024 * 1024 * 5 }, // Giới hạn 5MB
+    fileFilter: function (req, file, cb) {
+      const fileTypes = /jpeg|jpg|png/;
+      const mimeType = fileTypes.test(file.mimetype);
+      const extName = fileTypes.test(path.extname(file.originalname).toLowerCase());
+  
+      if (mimeType && extName) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only images are allowed!'));
+      }
+    }
+  });
 const {
     createPost,
     commentPost,
@@ -28,7 +45,7 @@ router.route("/:community_id/posts/:post_id")
     .delete(verifyMember, deletePost);
 
 
-router.post("/:community_id/posts/:post_id/comments",verifyMember, commentPost);
+router.post("/:community_id/posts/:post_id/comments",verifyMember, upload.single('image'), commentPost);
 
 router.route("/:community_id/posts/:post_id/comments/:comment_id")
     .patch(verifyMember, verifyAuthor, updateComment)

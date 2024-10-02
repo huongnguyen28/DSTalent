@@ -2,3 +2,5 @@
 /backend/.env
 .env
 /backend/sql
+.idea
+/backend/public/
