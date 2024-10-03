@@ -410,7 +410,7 @@ const searchCommunity = async (req, res) => {
             )
           ),
           "=",
-          tagsCount
+          tagsCount162375
         );
       }
       communities = await Community.findAll({
@@ -459,7 +459,7 @@ const searchCommunity = async (req, res) => {
     }
 
     const totalPage = Math.ceil(communities.count / limit);
-    if (page > totalPage) {
+    if (page > 1 && page > totalPage) {
       return formatResponse(res, {}, STATUS_CODE.NOT_FOUND, "Page not found!");
     }
     const pagination = {
