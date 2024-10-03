@@ -753,7 +753,7 @@ const leaveCommunity = async (req, res) => {
 };
 
 const getMemberProfile = async (req, res) => {
-  const memberId = req.member.member_id;
+  const memberId = req.params.member_id;
   const member = await Member.findOne({
     where: {
       member_id: memberId,

@@ -75,7 +75,7 @@ const createUpLevelRequest = async (req, res) => {
 
         await Member.update({
             current_up_level_request_id: upLevelRequest.up_level_request_id,
-            up_level_phase: 2,
+            up_level_phase: 3,
         }, {
             where: {
                 member_id: member.member_id,
@@ -514,7 +514,6 @@ const listPendingForJudge = async (req, res) => {
 
   const listPendingForTest = async (req, res) => {
     try {
-      const userId = req.user.user_id; 
       const communityId = req.params.community_id;
  
       const pendingForTestTests = await Test.findAll({
@@ -532,7 +531,7 @@ const listPendingForJudge = async (req, res) => {
           }
         ],
         where: {
-          created_by: userId,
+          created_by: req.member.member_id,
           question_file: null
         }
       });
