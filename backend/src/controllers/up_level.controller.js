@@ -114,8 +114,15 @@ const getCurrentTests = async (req, res) => {
         });
 
         const testsData = await Promise.all(tests.map(async test => {
-            const user = await User.findByPk(test.dataValues.created_by);
-            const { question_file, answer_file, ...others } = test.dataValues;
+            const user_id = await Member.findOne({
+                where: {
+                    member_id: test.created_by,
+                    community_id: req.params.community_id
+                },
+                attributes: ["user_id"],
+            });
+            const user = await User.findByPk(user_id.user_id)
+            const {...others } = test.dataValues;
             others.created_by = user.full_name;
             return others;
         }));
@@ -226,11 +233,12 @@ const downloadAnswer = async (req, res) => {
 const uploadQuestion = async (req, res) => {
     try {
         const file = req.file;
+        console.log('file', file)
         const test = await Test.findByPk(req.params.test_id);
         const upLevelRequest = await UpLevelRequest.findByPk(test.up_level_request_id);
         const member = await Member.findByPk(upLevelRequest.member_id);
-        if (member.up_level_phase != 4) {
-            fs.unlinkSync(file.path);
+        if (member.up_level_phase != 3) {
+            // fs.unlinkSync(file.path);
             return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot upload answer now!");
         }
 
@@ -244,7 +252,8 @@ const uploadQuestion = async (req, res) => {
             return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
         }
 
-        const fileData = fs.readFileSync(file.path);
+        // const fileData = fs.readFileSync(file.path);
+        const fileData = file.filename;
 
         await Test.update({
             question_file: fileData,
@@ -276,7 +285,7 @@ const uploadQuestion = async (req, res) => {
             }
         }
 
-        fs.unlinkSync(file.path);
+        // fs.unlinkSync(file.path);
 
         return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload question successfully!");
     } catch (error) {

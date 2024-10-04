@@ -8,10 +8,12 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
       },
       question_file: {
-        type: DataTypes.BLOB('medium')
+        // type: DataTypes.BLOB('medium')
+        type: DataTypes.STRING,
       },
       answer_file: {
-        type: DataTypes.BLOB('medium')
+        // type: DataTypes.BLOB('medium')
+        type: DataTypes.STRING,
       },
       status: {
         type: DataTypes.STRING,
