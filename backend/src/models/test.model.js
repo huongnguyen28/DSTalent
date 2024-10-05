@@ -20,8 +20,8 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
       },
       score: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
+        type: DataTypes.DOUBLE,
+        allowNull: true,
       },
       comment: {
         type: DataTypes.TEXT,

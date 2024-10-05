@@ -192,7 +192,8 @@ const uploadAnswer = async (req, res) => {
             return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
         }
 
-        const fileData = fs.readFileSync(file.path);
+        // const fileData = fs.readFileSync(file.path);
+        const fileData = file.filename;
 
         await Test.update({
             answer_file: fileData,
@@ -202,7 +203,7 @@ const uploadAnswer = async (req, res) => {
             }
         });
 
-        fs.unlinkSync(file.path);
+        // fs.unlinkSync(file.path);
 
         return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload answer successfully!");
     } catch (error) {
@@ -457,9 +458,9 @@ const uploadScore = async (req, res) => {
 
         const test = await Test.findOne({ where: { test_id: testId } });
 
-        if (!test || test.created_by !== userId) {
-            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You are not authorized to upload score for this test.");
-        }
+        // if (!test || test.created_by !== userId) {
+        //     return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You are not authorized to upload score for this test.");
+        // }
 
         const { score } = req.body; 
 
@@ -480,7 +481,7 @@ const uploadScore = async (req, res) => {
 
 const listPendingForJudge = async (req, res) => {
     try {
-      const userId = req.user.user_id; 
+    //   const userId = req.user.user_id; 
       const communityId = req.params.community_id;
   
       const pendingForJudgeTests = await Test.findAll({
@@ -498,9 +499,9 @@ const listPendingForJudge = async (req, res) => {
           }
         ],
         where: {
-          created_by: userId,
+          created_by: req.member.member_id,
           question_file: { [Op.not]: null },
-          answer_file: { [Op.not]: null }, // Không rỗng
+        //   answer_file: { [Op.not]: null }, // Không rỗng
           score: { [Op.or]: [0, null] },
         }
       });
@@ -576,7 +577,6 @@ module.exports = {
     uploadScore,
     listPendingForJudge,
     listPendingForTest,
-
 }
 
 // ===================================================
