@@ -326,7 +326,12 @@ const listLevelUpRequests = async (req, res) => {
             },
             attributes: ["current_level"]
         });
-
+        
+        const testCreatedByRequester = await Test.findAll({
+            where: {
+                created_by: requesterId
+            },
+        })
         const listLevelUpRequest = await UpLevelRequest.findAll({
             where: {
                 [Op.and]: [
@@ -339,8 +344,13 @@ const listLevelUpRequests = async (req, res) => {
                         num_judge_agreed: {
                             [Op.lt]: 3
                         }
+                    },
+                    {
+                        up_level_request_id: {
+                            [Op.notIn]: testCreatedByRequester.map(test => test.up_level_request_id)
+                        }
                     }
-                ]
+                ],
             },
             order: [
                 ["candidate_target_level", "DESC"],
@@ -473,6 +483,14 @@ const uploadScore = async (req, res) => {
             { where: { test_id: testId } }
         );
 
+        const upLevelRequest = await UpLevelRequest.findByPk(test.up_level_request_id);
+        await upLevelRequest.update(
+            {   
+                num_judge_completed_score: upLevelRequest.num_judge_completed_score + 1,
+                score: upLevelRequest.score + parseFloat(score),
+            }
+        )
+
         return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload score successfully!");
     } catch (error) {
         return formatResponse(res, {}, STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
@@ -562,6 +580,46 @@ const listPendingForJudge = async (req, res) => {
     }
   };
 
+  const completeLevelUpRequest = async (req, res) => {
+    try {
+        const member = await Member.findByPk(req.member.member_id);
+
+        if (member.up_level_phase != 5) {
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot complete level up!");
+        }
+
+    
+        const upLevelRequest = await UpLevelRequest.findByPk(member.current_up_level_request_id);
+        const score = upLevelRequest.score / 3;
+        if (score >= 5) {
+            await Member.update({
+                current_level: upLevelRequest.candidate_target_level,
+            }, {
+                where: {
+                    member_id: member.member_id,
+                }
+            });
+        }
+        await Member.update({
+            up_level_phase: 1,
+            current_up_level_request_id: null,
+        }, {
+            where: {
+                member_id: member.member_id,
+            }
+        });
+
+        return formatResponse(res, {up_level_phase: 1}, STATUS_CODE.SUCCESS, "Complete level up successfully!");
+    } catch (error) {
+        return formatResponse(
+            res,
+            error,
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            "Failed to complete level up request"
+            );
+    }
+  }
+
 module.exports = {
     getUpLevelPhase,
     createUpLevelRequest,
@@ -577,6 +635,7 @@ module.exports = {
     uploadScore,
     listPendingForJudge,
     listPendingForTest,
+    completeLevelUpRequest,
 }
 
 // ===================================================
