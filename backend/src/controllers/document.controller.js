@@ -607,8 +607,6 @@ const deleteDocumentFile = async (req, res) => {
     }
 
     const documentId = req.params.document_id;
-    // const userId = req.user.user_id;
-    console.log('doc id doc con',documentId)
 
     const document = await Document.findOne({ where: { document_id: documentId, is_active: true } });
 
@@ -625,25 +623,6 @@ const deleteDocumentFile = async (req, res) => {
       {preview_content_path: ''},
       {where: {document_id: documentId}}
     );
-
-    // else {
-    //   const documentAccess = await Document_Access.findOne({
-    //     where: {
-    //       document_id: documentId,
-    //       user_id: userId,
-    //       expired_date: { [Op.lte]: new Date() }, // Ensure access has not expired
-    //     }
-    //   });
-
-    //   if (!documentAccess) {
-    //     return formatResponse(
-    //       res,
-    //       {},
-    //       STATUS_CODE.FORBIDDEN,
-    //       "Access denied or document access has expired!"
-    //     );
-    //   }
-    // }
 
     return formatResponse(
       res,

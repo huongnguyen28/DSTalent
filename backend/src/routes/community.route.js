@@ -18,7 +18,9 @@ const {
   searchCommunity,
   getCommunityAdmins,
   grantRoleInCommunity,
-  revokeRoleInCommunity
+  revokeRoleInCommunity,
+  updateCoverImage,
+  deleteCoverImage,
 } = require("../controllers/community.controller");
 const { verifyToken } = require("../middlewares/verify-token");
 const { verifyMember } = require("../middlewares/verify-member");
@@ -36,6 +38,11 @@ router
   .get(getCommunityDetail)
   .patch(verifyMember, verifyAdmin, updateCommunity)
   .delete(verifyMember, verifyAdmin, deleteCommunity);
+
+router
+  .route("/:community_id/cover")
+  .patch(verifyMember, verifyAdmin, upload.single('image'), updateCoverImage)
+  .delete(verifyMember, verifyAdmin, deleteCoverImage);
 
 router.get("/:community_id/members", verifyMember, getCommunityMembers);
 
