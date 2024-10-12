@@ -478,6 +478,10 @@ const uploadScore = async (req, res) => {
             return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "Score is required and must be a number!");
         }
 
+        if (score < 0 || score > 10) {
+            return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "Score must be in range 0 to 10!");
+        }
+
         await Test.update(
             { score: parseFloat(score) }, 
             { where: { test_id: testId } }
