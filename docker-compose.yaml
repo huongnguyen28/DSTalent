@@ -20,6 +20,8 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MONGODB_URI: ${MONGODB_URI}
+    volumes:
+      - .backend/public:/backend/public 
     networks:
       - nodejs-mysql-network
   mysql:
