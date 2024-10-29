@@ -240,7 +240,7 @@ const uploadQuestion = async (req, res) => {
         const member = await Member.findByPk(upLevelRequest.member_id);
         if (member.up_level_phase != 3) {
             // fs.unlinkSync(file.path);
-            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot upload answer now!");
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot upload question now!");
         }
 
         let isUpdating = false;
