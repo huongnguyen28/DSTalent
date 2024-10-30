@@ -1,11 +1,11 @@
 version: '3.7'
 services:
-  backend:
-    image: kiettna/dstalent-backend:v1.0
+  app:
+    image: kiettna/dstalent-backend:v2.0
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: backend
+    container_name: app
     ports:
       - 8080:8080
     depends_on:
