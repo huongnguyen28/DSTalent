@@ -75,7 +75,7 @@ const createUpLevelRequest = async (req, res) => {
 
         await Member.update({
             current_up_level_request_id: upLevelRequest.up_level_request_id,
-            up_level_phase: 2,
+            up_level_phase: 3,
         }, {
             where: {
                 member_id: member.member_id,
@@ -114,8 +114,15 @@ const getCurrentTests = async (req, res) => {
         });
 
         const testsData = await Promise.all(tests.map(async test => {
-            const user = await User.findByPk(test.dataValues.created_by);
-            const { question_file, answer_file, ...others } = test.dataValues;
+            const user_id = await Member.findOne({
+                where: {
+                    member_id: test.created_by,
+                    community_id: req.params.community_id
+                },
+                attributes: ["user_id"],
+            });
+            const user = await User.findByPk(user_id.user_id)
+            const {...others } = test.dataValues;
             others.created_by = user.full_name;
             return others;
         }));
@@ -185,7 +192,8 @@ const uploadAnswer = async (req, res) => {
             return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
         }
 
-        const fileData = fs.readFileSync(file.path);
+        // const fileData = fs.readFileSync(file.path);
+        const fileData = file.filename;
 
         await Test.update({
             answer_file: fileData,
@@ -195,7 +203,7 @@ const uploadAnswer = async (req, res) => {
             }
         });
 
-        fs.unlinkSync(file.path);
+        // fs.unlinkSync(file.path);
 
         return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload answer successfully!");
     } catch (error) {
@@ -226,12 +234,13 @@ const downloadAnswer = async (req, res) => {
 const uploadQuestion = async (req, res) => {
     try {
         const file = req.file;
+        console.log('file', file)
         const test = await Test.findByPk(req.params.test_id);
         const upLevelRequest = await UpLevelRequest.findByPk(test.up_level_request_id);
         const member = await Member.findByPk(upLevelRequest.member_id);
-        if (member.up_level_phase != 4) {
-            fs.unlinkSync(file.path);
-            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot upload answer now!");
+        if (member.up_level_phase != 3) {
+            // fs.unlinkSync(file.path);
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot upload question now!");
         }
 
         let isUpdating = false;
@@ -244,7 +253,8 @@ const uploadQuestion = async (req, res) => {
             return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "File is required!"); 
         }
 
-        const fileData = fs.readFileSync(file.path);
+        // const fileData = fs.readFileSync(file.path);
+        const fileData = file.filename;
 
         await Test.update({
             question_file: fileData,
@@ -276,7 +286,7 @@ const uploadQuestion = async (req, res) => {
             }
         }
 
-        fs.unlinkSync(file.path);
+        // fs.unlinkSync(file.path);
 
         return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload question successfully!");
     } catch (error) {
@@ -316,7 +326,12 @@ const listLevelUpRequests = async (req, res) => {
             },
             attributes: ["current_level"]
         });
-
+        
+        const testCreatedByRequester = await Test.findAll({
+            where: {
+                created_by: requesterId
+            },
+        })
         const listLevelUpRequest = await UpLevelRequest.findAll({
             where: {
                 [Op.and]: [
@@ -329,8 +344,13 @@ const listLevelUpRequests = async (req, res) => {
                         num_judge_agreed: {
                             [Op.lt]: 3
                         }
+                    },
+                    {
+                        up_level_request_id: {
+                            [Op.notIn]: testCreatedByRequester.map(test => test.up_level_request_id)
+                        }
                     }
-                ]
+                ],
             },
             order: [
                 ["candidate_target_level", "DESC"],
@@ -448,9 +468,9 @@ const uploadScore = async (req, res) => {
 
         const test = await Test.findOne({ where: { test_id: testId } });
 
-        if (!test || test.created_by !== userId) {
-            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You are not authorized to upload score for this test.");
-        }
+        // if (!test || test.created_by !== userId) {
+        //     return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You are not authorized to upload score for this test.");
+        // }
 
         const { score } = req.body; 
 
@@ -458,10 +478,22 @@ const uploadScore = async (req, res) => {
             return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "Score is required and must be a number!");
         }
 
+        if (score < 0 || score > 10) {
+            return formatResponse(res, {}, STATUS_CODE.BAD_REQUEST, "Score must be in range 0 to 10!");
+        }
+
         await Test.update(
             { score: parseFloat(score) }, 
             { where: { test_id: testId } }
         );
+
+        const upLevelRequest = await UpLevelRequest.findByPk(test.up_level_request_id);
+        await upLevelRequest.update(
+            {   
+                num_judge_completed_score: upLevelRequest.num_judge_completed_score + 1,
+                score: upLevelRequest.score + parseFloat(score),
+            }
+        )
 
         return formatResponse(res, {}, STATUS_CODE.SUCCESS, "Upload score successfully!");
     } catch (error) {
@@ -471,7 +503,7 @@ const uploadScore = async (req, res) => {
 
 const listPendingForJudge = async (req, res) => {
     try {
-      const userId = req.user.user_id; 
+    //   const userId = req.user.user_id; 
       const communityId = req.params.community_id;
   
       const pendingForJudgeTests = await Test.findAll({
@@ -489,9 +521,9 @@ const listPendingForJudge = async (req, res) => {
           }
         ],
         where: {
-          created_by: userId,
+          created_by: req.member.member_id,
           question_file: { [Op.not]: null },
-          answer_file: { [Op.not]: null }, // Không rỗng
+        //   answer_file: { [Op.not]: null }, // Không rỗng
           score: { [Op.or]: [0, null] },
         }
       });
@@ -514,7 +546,6 @@ const listPendingForJudge = async (req, res) => {
 
   const listPendingForTest = async (req, res) => {
     try {
-      const userId = req.user.user_id; 
       const communityId = req.params.community_id;
  
       const pendingForTestTests = await Test.findAll({
@@ -532,7 +563,7 @@ const listPendingForJudge = async (req, res) => {
           }
         ],
         where: {
-          created_by: userId,
+          created_by: req.member.member_id,
           question_file: null
         }
       });
@@ -553,6 +584,46 @@ const listPendingForJudge = async (req, res) => {
     }
   };
 
+  const completeLevelUpRequest = async (req, res) => {
+    try {
+        const member = await Member.findByPk(req.member.member_id);
+
+        if (member.up_level_phase != 5) {
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You cannot complete level up!");
+        }
+
+    
+        const upLevelRequest = await UpLevelRequest.findByPk(member.current_up_level_request_id);
+        const score = upLevelRequest.score / 3;
+        if (score >= 5) {
+            await Member.update({
+                current_level: upLevelRequest.candidate_target_level,
+            }, {
+                where: {
+                    member_id: member.member_id,
+                }
+            });
+        }
+        await Member.update({
+            up_level_phase: 1,
+            current_up_level_request_id: null,
+        }, {
+            where: {
+                member_id: member.member_id,
+            }
+        });
+
+        return formatResponse(res, {up_level_phase: 1}, STATUS_CODE.SUCCESS, "Complete level up successfully!");
+    } catch (error) {
+        return formatResponse(
+            res,
+            error,
+            STATUS_CODE.INTERNAL_SERVER_ERROR,
+            "Failed to complete level up request"
+            );
+    }
+  }
+
 module.exports = {
     getUpLevelPhase,
     createUpLevelRequest,
@@ -568,7 +639,7 @@ module.exports = {
     uploadScore,
     listPendingForJudge,
     listPendingForTest,
-
+    completeLevelUpRequest,
 }
 
 // ===================================================

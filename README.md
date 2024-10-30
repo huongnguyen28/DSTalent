@@ -8,3 +8,6 @@ Summer Internship 2024
 - Edit the .env file to set the MONGODB_URI variable with your MongoDB connection string.
   Example:
   `MONGODB_URI = 'mongodb://localhost:27017/data_tailent'`
+
+# Deploy
+Bugs with the APIs for posting files and getting files have not been fixed.

@@ -35,7 +35,8 @@ const {
     getCurrentTests,
     submitAnswer,
     listPendingForJudge,
-    listPendingForTest
+    listPendingForTest,
+    completeLevelUpRequest
 } = require('../controllers/up_level.controller');
 const { verify } = require('jsonwebtoken');
 
@@ -44,6 +45,7 @@ router.get('/me/communities/:community_id/up-level-phase', verifyMember, getUpLe
 router.post('/me/communities/:community_id/up-level-request', verifyMember, createUpLevelRequest);
 router.get('/me/communities/:community_id/current-tests', verifyMember, getCurrentTests);
 router.post('/me/communities/:community_id/submit-answer', verifyMember, submitAnswer);
+router.post('/me/communities/:community_id/complete', verifyMember, completeLevelUpRequest);
 
 // ===================== Vuong ================================
 router.get("/me/communities/:community_id/pending-for-judge", verifyMember, listPendingForJudge);

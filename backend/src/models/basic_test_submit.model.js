@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: null,
       },
       score: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DOUBLE,
         defaultValue: 0,
       },
       created_at: {

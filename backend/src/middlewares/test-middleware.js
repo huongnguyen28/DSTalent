@@ -33,9 +33,9 @@ const isCandidateOfTest = async (req, res, next) => {
 const isJudgeOfTest = async (req, res, next) => {
     try {
 
-        const user = req.user;
+        // const user = req.user;
         const test = await Test.findByPk(req.params.test_id);
-        if (test.created_by !== user.user_id) {
+        if (test.created_by !== req.member.member_id) {
             return formatResponse(
                 res,
                 {},

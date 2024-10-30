@@ -410,7 +410,7 @@ const searchCommunity = async (req, res) => {
             )
           ),
           "=",
-          tagsCount
+          tagsCount162375
         );
       }
       communities = await Community.findAll({
@@ -459,7 +459,7 @@ const searchCommunity = async (req, res) => {
     }
 
     const totalPage = Math.ceil(communities.count / limit);
-    if (page > totalPage) {
+    if (page > 1 && page > totalPage) {
       return formatResponse(res, {}, STATUS_CODE.NOT_FOUND, "Page not found!");
     }
     const pagination = {
@@ -753,7 +753,7 @@ const leaveCommunity = async (req, res) => {
 };
 
 const getMemberProfile = async (req, res) => {
-  const memberId = req.member.member_id;
+  const memberId = req.params.member_id;
   const member = await Member.findOne({
     where: {
       member_id: memberId,
@@ -900,6 +900,88 @@ const revokeRoleInCommunity = async (req, res) => {
   }
 };
 
+const updateCoverImage = async (req, res) => {
+  try {
+    const file = req.file;
+    const communityId = req.params.community_id;
+
+    const community = await Community.findOne({
+      where: { community_id: communityId },
+    });
+
+    if (!community) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Community not found!"
+      );
+    }
+
+    if (file) {
+      await Community.update(
+        { cover_image: file.filename },
+        { where: { community_id: communityId}}
+      );
+    }
+
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.SUCCESS,
+      "Cover image uploaded successfully!"
+    );
+  } catch (error) {
+    return formatResponse(
+      res,
+      error,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      "Failed to update community!"
+    );
+  }
+};
+
+const deleteCoverImage = async (req, res) => {
+  try {
+    const communityId = req.params.community_id;
+
+    const community = await Community.findOne({
+      where: { community_id: communityId },
+    });
+
+    if (!community) {
+      return formatResponse(
+        res,
+        {},
+        STATUS_CODE.NOT_FOUND,
+        "Community not found!"
+      );
+    }
+
+    await Community.update(
+      {cover_image: ''},
+      {where: { community_id: communityId}}
+    );
+
+    return formatResponse(
+      res,
+      {
+        community_id: communityId,
+      },
+      STATUS_CODE.SUCCESS,
+      "Delete cover image successfully!"
+    );
+
+  } catch (error) {
+    return formatResponse(
+      res,
+      {},
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
 // rate community by member
 
 module.exports = {
@@ -917,4 +999,6 @@ module.exports = {
   grantRoleInCommunity,
   revokeRoleInCommunity,
   getCommunityAdmins,
+  updateCoverImage,
+  deleteCoverImage
 };
