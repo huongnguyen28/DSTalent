@@ -1,11 +1,11 @@
-# version: '3.7'
+version: '3.7'
 services:
-  backend:
-    image: kiettna/dstalent-backend
+  app:
+    image: kiettna/dstalent-backend:v2.0
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: backend
+    container_name: app
     ports:
       - 8080:8080
     depends_on:
@@ -20,6 +20,8 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MONGODB_URI: ${MONGODB_URI}
+    volumes:
+      - .backend/public:/backend/public 
     networks:
       - nodejs-mysql-network
   mysql:

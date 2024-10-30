@@ -7,30 +7,8 @@ const {
   SERVER_MESSAGE_TYPE,
 } = require("./constants");
 
-// function orMiddleware(middleware1, middleware2) {
-//   return function(req, res, next) {
-//     // Track if any of the middlewares has called `next()`
-//     let calledNext = false;
-
-//     function nextWrapper() {
-//       if (!calledNext) {
-//         calledNext = true;
-//         next();
-//       }
-//     }
-
-//     // Run middleware1, if it calls next(), skip middleware2
-//     middleware1(req, res, nextWrapper);
-
-//     // If middleware1 doesn't call next, run middleware2
-//     if (!calledNext) {
-//       middleware2(req, res, nextWrapper);
-//     }
-//   };
-// }
-
 const formatFilePath = (fileName) => {
-  const path = appRootPath + "\\public\\upload\\" + fileName;
+  const path = appRootPath + "/public/upload/" + fileName;
   return path;
 };
 
@@ -39,7 +17,6 @@ const generateToken = (user, secret_key, expire) => {
     {
       user_id: user.user_id,
       email: user.email,
-      // full_name: user.full_name,
       phone: user.phone,
     },
     secret_key,

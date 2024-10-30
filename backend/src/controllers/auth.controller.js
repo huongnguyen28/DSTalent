@@ -9,7 +9,6 @@ const User = db.user;
 const {
   readAndTransformImageToBase64,
   generateVerifyCode,
-  generateRandomPassword,
   generateToken,
   formatResponse,
   STATUS_CODE,
