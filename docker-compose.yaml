@@ -14,14 +14,21 @@ services:
       mongodb:
         condition: service_healthy
     environment:
+      JWT_ACCESS_KEY: ${JWT_ACCESS_KEY}
+      JWT_REFRESH_KEY: ${JWT_REFRESH_KEY}
+      ACCESS_TIME: ${ACCESS_TIME}
+      REFRESH_TIME: ${REFRESH_TIME}
+      PORT: ${PORT}
+      ACCOUNT_GMAIL: ${ACCOUNT_GMAIL}
+      PASSWORD_GMAIL: ${PASSWORD_GMAIL}
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MONGODB_URI: ${MONGODB_URI}
     volumes:
-      - .backend/public:/backend/public 
+      - ./backend/public/upload:/backend/public/upload 
     networks:
       - nodejs-mysql-network
   mysql:
