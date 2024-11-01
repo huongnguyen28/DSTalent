@@ -69,8 +69,8 @@ const getPosts = async (req, res) => {
                     res,
                     [],
                     STATUS_CODE.SUCCESS,
-                    // "No posts found with the given tags."
-                    error.message
+                    "No posts found with the given tags."
+                    // error.message
                 );
             }
         }
@@ -110,10 +110,13 @@ const getPosts = async (req, res) => {
 
 const createPost = async (req, res) => {
     const transaction = await db.sequelize.transaction();
-
+    
     try {
-        const { tags, caption, attachments } = req.body;
+        const { caption, tags } = req.body; // Lấy caption từ req.body
         const { community_id } = req.params;
+
+        // const image = req.files.image ? req.files.image[0] : null; // Lưu 1 ảnh
+        const images = req.files.images || [];
 
         // Fetch the user's full name from the database
         const user = await User.findOne({ where: { user_id: req.user.user_id }, transaction });
@@ -122,12 +125,14 @@ const createPost = async (req, res) => {
             return formatResponse(res, {}, STATUS_CODE.NOT_FOUND, "User not found!");
         }
 
-        // Create a new post with Mongoose
+        // Tạo một đối tượng post mới
         const newPost = new Post({
             caption,
-            attachments: req.file ? [{ url: req.file.path, type: req.file.mimetype }] : [],
-            community_id: community_id,
-            creator_name: user.full_name,  // Use the fetched user's full name
+            // Lưu trữ tệp ảnh trong attachments
+            // attachments: image ? [{ url: image.path, type: image.mimetype }] : [], // Lưu một ảnh    
+            attachments: images.map(image => ({ url: image.path, type: image.mimetype })), // Lưu nhiều ảnh
+            community_id,
+            creator_name: user.full_name,
             creator_id: req.user.user_id,
             likes: [],  // prevent user from buffing the likes
             comments: [], // prevent user from buffing the comments
@@ -135,18 +140,17 @@ const createPost = async (req, res) => {
 
         await newPost.save();
 
-        // Handle tags
-        if (tags && tags.length > 0) {
+        if (tags && Array.isArray(tags) && tags.length > 0) { // Kiểm tra xem tags có phải là mảng không
             for (let tag_name of tags) {
-                // Find or create tag
+                // Tìm hoặc tạo tag
                 const [tag] = await Tag.findOrCreate({
                     where: { tag_name: tag_name },
                     transaction
                 });
 
-                // Create link between post and tag
+                // Tạo liên kết giữa post và tag
                 await PostTag.create({
-                    post_id: newPost._id.toString(),  // Convert ObjectId to string
+                    post_id: newPost._id.toString(),  // Chuyển ObjectId thành chuỗi
                     tag_id: tag.tag_id
                 }, { transaction });
             }
@@ -158,7 +162,7 @@ const createPost = async (req, res) => {
             res,
             {
                 newPost,
-                tags,
+                tags: tags || [], // Trả về tags
             },
             STATUS_CODE.CREATED,
             "Success!"
@@ -218,7 +222,9 @@ const getPost = async (req, res) => {
 
 const commentPost = async (req, res) => {
     const { post_id } = req.params;
-    const { text, attachment } = req.body;
+    const { text } = req.body; // Get text from req.body
+
+    const image = req.files.image ? req.files.image[0] : null;
 
     try {
         // Find the post by its ID
@@ -251,7 +257,7 @@ const commentPost = async (req, res) => {
             creator_name: user.full_name,  // Use the fetched user's full name
             creator_id: req.user.user_id,
             text: text,
-            attachment: attachment,
+            attachment: image ? { url: image.path, type: image.mimetype } : null, // Prepare the attachment
             createdAt: new Date(),
             updatedAt: new Date(),
         };
@@ -284,68 +290,12 @@ const commentPost = async (req, res) => {
 };
 
 
-// const commentPost = async (req, res) => {
-//     const { post_id } = req.params;
-//     const { text, attachment } = req.body;
-
-//     try {
-//         // Find the post by its ID
-//         const post = await Post.findById(post_id);
-
-//         // If the post is not found, return a 404 status
-//         if (!post) {
-//             return formatResponse(
-//                 res,
-//                 {},
-//                 STATUS_CODE.NOT_FOUND,
-//                 `No post with id: ${post_id}`
-//             );
-//         }
-
-//         // Create the new comment
-//         const comment = {
-//             creator_name: req.user.full_name,
-//             creator_id: req.user.user_id,
-//             text: text,
-//             attachment: attachment,
-//             createdAt: new Date(),
-//             updatedAt: new Date(),
-//         };
-
-//         // Add the new comment to the post's comments array
-//         post.comments.push(comment);
-
-//         // Save the updated post
-//         const updatedPost = await post.save(); // Use save() to ensure validation
-
-//         // Return the updated post with a success message
-//         return formatResponse(
-//             res,
-//             {
-//                 updatedPost
-//             },
-//             STATUS_CODE.SUCCESS,
-//             "Comment added successfully!"
-//         );
-
-//     } catch (error) {
-//         // Handle any errors that occur
-//         return formatResponse(
-//             res,
-//             {},
-//             STATUS_CODE.INTERNAL_SERVER_ERROR,
-//             // "Failed to add comment"
-//             error.message
-//         );
-//     }
-// };
-
-
-
 const updatePost = async (req, res) => {
     const transaction = await db.sequelize.transaction();
     const { post_id } = req.params;
-    const { caption, attachments, tags } = req.body;
+    const { caption } = req.body; // Lấy caption từ req.body
+    const images = req.files.images || []; // Lấy file hình ảnh từ req.files
+    const tags = req.body.tags || []; // Lấy tags từ req.body
 
     try {
         if (!mongoose.Types.ObjectId.isValid(post_id)) {
@@ -367,27 +317,28 @@ const updatePost = async (req, res) => {
             );
         }
 
+        // Cập nhật caption và attachments
         post.caption = caption;
-        post.attachments = attachments;
-        await post.save();
+        post.attachments = images.map(image => ({ url: image.path, type: image.mimetype })); // Cập nhật lại attachments
+        await post.save({ transaction }); // Lưu với transaction
 
-        if (tags && tags.length > 0) {
-            await PostTag.destroy({
-                where: { post_id: post_id.toString() },
-                transaction
+        // Xóa các tag cũ trước khi thêm mới
+        await PostTag.destroy({
+            where: { post_id: post._id.toString() },
+            transaction
+        });
+
+        // Thêm các tag mới
+        for (let tag_name of tags) {
+            const [tag] = await Tag.findOrCreate({
+                where: { tag_name: tag_name },
+                transaction,
             });
 
-            for (let tag_name of tags) {
-                const [tag] = await Tag.findOrCreate({
-                    where: { tag_name: tag_name },
-                    transaction,
-                });
-
-                await PostTag.create({
-                    post_id: post._id.toString(),
-                    tag_id: tag.tag_id,
-                }, { transaction });
-            }
+            await PostTag.create({
+                post_id: post._id.toString(),
+                tag_id: tag.tag_id,
+            }, { transaction });
         }
 
         await transaction.commit();
@@ -401,7 +352,6 @@ const updatePost = async (req, res) => {
             STATUS_CODE.SUCCESS,
             "Post updated successfully!"
         );
-
 
     } catch (error) {
         await transaction.rollback();
@@ -419,7 +369,8 @@ const updatePost = async (req, res) => {
 
 const updateComment = async (req, res) => {
     const { post_id, comment_id } = req.params;
-    const { text, attachment } = req.body;
+    const { text } = req.body;
+    const image = req.files.image ? req.files.image[0] : null;
 
     try {
         // Find the post by post_id
@@ -446,9 +397,15 @@ const updateComment = async (req, res) => {
             );
         }
 
-        // Update comment information
-        comment.text = text || comment.text;
-        comment.attachment = attachment || comment.attachment;
+        if (text && text.trim() !== "") { // Check if text is valid
+            comment.text = text;
+        }
+        
+        // Update attachment if a new image is provided
+        if (image) {
+            comment.attachment = { url: image.path, type: image.mimetype };
+        }
+        
         comment.updatedAt = Date.now(); // Update the time of modification
 
         // Save the post with the updated comment
