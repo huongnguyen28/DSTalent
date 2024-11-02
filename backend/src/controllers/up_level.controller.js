@@ -466,11 +466,20 @@ const uploadScore = async (req, res) => {
         const userId = req.user.user_id;
         const testId = req.params.test_id;
 
-        const test = await Test.findOne({ where: { test_id: testId } });
+        const test = await Test.findOne({ 
+            where: { test_id: testId },
+            include: [{
+                model: Member,
+                required: true,
+                where: {
+                    user_id: userId
+                },
+            }]
+        });
 
-        // if (!test || test.created_by !== userId) {
-        //     return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "You are not authorized to upload score for this test.");
-        // }
+        if (!test) {
+            return formatResponse(res, {}, STATUS_CODE.FORBIDDEN, "The test does not exist or you are not authorized to upload score for this test.");
+        }
 
         const { score } = req.body; 
 

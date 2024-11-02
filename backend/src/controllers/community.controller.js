@@ -806,7 +806,7 @@ const grantRoleInCommunity = async (req, res) => {
     const member = await Member.findOne({
       where: {
         community_id: communityId,
-        user_id: memberId,
+        member_id: memberId,
       },
     });
 
@@ -830,7 +830,7 @@ const grantRoleInCommunity = async (req, res) => {
 
     await Member.update(
       { is_admin: true },
-      { where: { community_id: communityId, user_id: memberId } }
+      { where: { community_id: communityId, member_id: memberId } }
     );
 
     return formatResponse(
@@ -857,7 +857,7 @@ const revokeRoleInCommunity = async (req, res) => {
     const member = await Member.findOne({
       where: {
         community_id: communityId,
-        user_id: memberId,
+        member_id: memberId,
       },
     });
 
@@ -881,7 +881,7 @@ const revokeRoleInCommunity = async (req, res) => {
 
     await Member.update(
       { is_admin: false },
-      { where: { community_id: communityId, user_id: memberId } }
+      { where: { community_id: communityId, member_id: memberId } }
     );
 
     return formatResponse(

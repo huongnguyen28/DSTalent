@@ -27,6 +27,7 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MONGODB_URI: ${MONGODB_URI}
+
     volumes:
       - ./backend/public/upload:/backend/public/upload 
     networks:
